@@ -12,21 +12,21 @@ WORKDIR /home/taptinder/
 USER taptinder
 ENV HOME /home/taptinder
 
-RUN mkdir /tmp/cpanm-ins \
-  && cd /tmp/cpanm-ins \
-  && curl -LO https://raw.githubusercontent.com/miyagawa/cpanminus/master/cpanm \
-  && chmod +x cpanm \
-  && export PERL_CPANM_HOME=/tmp/cpanm-ins/ \
-  && ./cpanm App::cpanminus -v \
-  && cd /home/taptinder \
-  && rm -rf /tmp/cpanm-ins
-
 # ToDo? RUN eval $(perl -I/home/taptinder/perl5/lib/perl5/ -Mlocal::lib)
 ENV PERL_LOCAL_LIB_ROOT /home/taptinder/perl5
 ENV PERL_MB_OPT --install_base /home/taptinder/perl5
 ENV PERL_MM_OPT INSTALL_BASE=/home/taptinder/perl5
 ENV PERL5LIB /home/taptinder/perl5/lib/perl5
 ENV PATH /home/taptinder/perl5/bin:$PATH
+
+RUN mkdir /tmp/cpanm-ins \
+  && cd /tmp/cpanm-ins \
+  && curl -LO https://raw.githubusercontent.com/miyagawa/cpanminus/master/cpanm \
+  && chmod +x cpanm \
+  && export PERL_CPANM_HOME=/tmp/cpanm-ins/ \
+  && ./cpanm App::cpanminus \
+  && cd /home/taptinder \
+  && rm -rf /tmp/cpanm-ins
 
 # ToDo remove --force
 # ToDo CPAN needed by Catalyst::Devel
