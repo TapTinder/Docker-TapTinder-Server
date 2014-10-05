@@ -30,7 +30,7 @@ ENV PATH /home/taptinder/perl5/bin:$PATH
 
 # ToDo remove --force
 # ToDo CPAN needed by Catalyst::Devel
-RUN mkdir -p -m 0777 /tmp/cpanm/ && \
+RUN mkdir -p -m 0777 /tmp/cpanm/ \
   && export PERL_CPANM_HOME=/tmp/cpanm/ \
   && ~/perl5/bin/cpanm  YAML YAML::Syck DateTime Term::ReadKey JSON File::Copy::Recursive Archive::Tar Git::Repository \
      File::ReadBackwards TAP::Harness::Archive LWP::UserAgent Term::Size::Any \
