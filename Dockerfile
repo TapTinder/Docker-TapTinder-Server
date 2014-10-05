@@ -44,15 +44,13 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
   && ~/perl5/bin/cpanm -v SQL::Translator GraphViz Catalyst::Restarter FCGI FCGI::ProcManager \
   && rm -rf /tmp/cpanm/
 
-RUN mkdir tt-prod \
-  && git clone https://github.com/mj41/TapTinder.git tt-prod/tt-server
+RUN git clone https://github.com/mj41/TapTinder.git tt-server
 
-WORKDIR /home/taptinder/tt-prod/tt-server
+WORKDIR /home/taptinder/tt-server
 RUN git log -n1 --oneline HEAD
 RUN git log -n1 --oneline 8d48405
 
 ENV TAPTINDER_COMPONENT server
-ENV TAPTINDER_ENV prod
 
 EXPOSE 2000
-CMD /home/taptinder/tt-prod/tt-docker-utils/tt-start.sh 2000
+CMD /home/taptinder/tt-docker-utils/tt-start.sh 2000
