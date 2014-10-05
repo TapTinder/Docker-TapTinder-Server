@@ -2,9 +2,9 @@ FROM centos:latest
 MAINTAINER Michal Jurosz <docker@mj41.cz>
 
 RUN yum install -y perl perl-Test-Simple perl-Test-More perl-Test-Harness perl-ExtUtils-MakeMaker \
-                   perl-ExtUtils-Install perl-Module-Build perl-ExtUtils-MakeMaker \
-                   graphviz expat expat-devel \
-                   make gcc gcc-c++ tree tar gzip git openssl-devel \
+     perl-ExtUtils-Install perl-Module-Build perl-ExtUtils-MakeMaker \
+     graphviz expat expat-devel \
+     make gcc gcc-c++ tree tar gzip git openssl-devel \
   && yum clean all
 
 RUN useradd taptinder
@@ -30,25 +30,24 @@ ENV PATH /home/taptinder/perl5/bin:$PATH
 
 # ToDo remove --force
 # ToDo CPAN needed by Catalyst::Devel
-RUN mkdir -p -m 0777 /tmp/cpanm/ \
+RUN mkdir -p -m 0777 /tmp/cpanm/ && \
   && export PERL_CPANM_HOME=/tmp/cpanm/ \
-  && ~/perl5/bin/cpanm -v YAML YAML::Syck DateTime Term::ReadKey JSON File::Copy::Recursive Archive::Tar Git::Repository \
-                          File::ReadBackwards TAP::Harness::Archive LWP::UserAgent Term::Size::Any \
-  && ~/perl5/bin/cpanm -v Catalyst::Runtime Catalyst::Plugin::Session::State::Cookie Catalyst::Plugin::Session::Store::FastMmap \
-                          Catalyst::Plugin::Static::Simple Catalyst::Plugin::Config::Multi Catalyst::View::TT Catalyst::View::JSON \
-                          Catalyst::Model::DBIC::Schema Catalyst::Plugin::StackTrace Catalyst::Action::RenderView \
-                          Catalyst::Authentication::Store::DBIx::Class Catalyst::Model::File Catalyst::Controller::REST \
-                          Catalyst::Plugin::Authorization::Roles \
+  && ~/perl5/bin/cpanm  YAML YAML::Syck DateTime Term::ReadKey JSON File::Copy::Recursive Archive::Tar Git::Repository \
+     File::ReadBackwards TAP::Harness::Archive LWP::UserAgent Term::Size::Any \
+  && ~/perl5/bin/cpanm  Catalyst::Runtime Catalyst::Plugin::Session::State::Cookie Catalyst::Plugin::Session::Store::FastMmap \
+     Catalyst::Plugin::Static::Simple Catalyst::Plugin::Config::Multi Catalyst::View::TT Catalyst::View::JSON \
+     Catalyst::Model::DBIC::Schema Catalyst::Plugin::StackTrace Catalyst::Action::RenderView \
+     Catalyst::Authentication::Store::DBIx::Class Catalyst::Model::File Catalyst::Controller::REST \
+     Catalyst::Plugin::Authorization::Roles \
   && ~/perl5/bin/cpanm --force -v MooseX::Daemonize \
-  && ~/perl5/bin/cpanm -v CPAN \
-  && ~/perl5/bin/cpanm -v SQL::Translator GraphViz Catalyst::Restarter FCGI FCGI::ProcManager \
+  && ~/perl5/bin/cpanm CPAN \
+  && ~/perl5/bin/cpanm SQL::Translator GraphViz Catalyst::Restarter FCGI FCGI::ProcManager \
   && rm -rf /tmp/cpanm/
 
 RUN git clone https://github.com/mj41/TapTinder.git tt-server
 
 WORKDIR /home/taptinder/tt-server
 RUN git log -n1 --oneline HEAD
-RUN git log -n1 --oneline 8d48405
 
 ENV TAPTINDER_COMPONENT server
 
