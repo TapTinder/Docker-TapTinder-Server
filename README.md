@@ -5,7 +5,7 @@ Docker files and scripts for TapTinder server installations.
 
 See [taptinder.org](http://www.taptinder.org) for more info.
 
-Join irc://irc.freenode.org/taptinder with your IRC client or use [Web interface](https://webchat.freenode.net/?channels=taptinder)).
+Join irc://irc.freenode.org/taptinder with your IRC client or use [Web interface](https://webchat.freenode.net/?channels=taptinder).
 
 Docker image
 ============
