@@ -41,7 +41,7 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
      Catalyst::Plugin::Authorization::Roles \
   && ~/perl5/bin/cpanm --force -v MooseX::Daemonize \
   && ~/perl5/bin/cpanm CPAN \
-  && ~/perl5/bin/cpanm SQL::Translator GraphViz Catalyst::Restarter FCGI FCGI::ProcManager \
+  && ~/perl5/bin/cpanm Starman SQL::Translator GraphViz Catalyst::Restarter FCGI FCGI::ProcManager \
   && rm -rf /tmp/cpanm/
 
 RUN git clone https://github.com/mj41/TapTinder.git tt-server
