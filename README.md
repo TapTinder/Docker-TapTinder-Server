@@ -1,7 +1,7 @@
 Docker Automated build of TapTinder Server
 ==========================================
 
-Docker files and scripts for TapTinder installations.
+Docker files and scripts for TapTinder server installations.
 
 See [taptinder.org](http://www.taptinder.org) for more info.
 
@@ -39,11 +39,11 @@ See [Using Docker](https://docs.docker.com/userguide/usingdocker/)
 Explore
 =======
 
-    # to create 'mytts-explore' and run Bash there
-    docker run -i -t -p 2200:2200 -u root --name ttexp mj41/tt-server:prod /bin/bash
+    # to create 'mytts-exp' and run Bash there
+    docker run -i -t -p 2200:2200 -u root --name mytts-exp mj41/tt-server:prod /bin/bash
 
     # start TapTinder server
     utils/start-server.sh prod d debug
 
-    # run already created 'mytts-explore' container
-    docker start -i ttexp
+    # run already created 'mytts-exp' container
+    docker start -i mytts-exp
