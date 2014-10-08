@@ -3,7 +3,7 @@ MAINTAINER Michal Jurosz <docker@mj41.cz>
 
 RUN yum install -y perl perl-Test-Simple perl-Test-More perl-Test-Harness perl-ExtUtils-MakeMaker \
      perl-ExtUtils-Install perl-Module-Build perl-ExtUtils-MakeMaker \
-     graphviz expat expat-devel \
+     mariadb graphviz expat expat-devel \
      make gcc gcc-c++ tree tar gzip git openssl-devel \
   && yum clean all
 
@@ -50,6 +50,5 @@ WORKDIR /home/taptinder/tt-server
 RUN git log -n1 --oneline HEAD
 
 ENV TAPTINDER_COMPONENT server
-
 EXPOSE 2000
-CMD /home/taptinder/tt-docker-utils/tt-start.sh 2000
+CMD script/taptinder_web_server.pl -r -p 2000
