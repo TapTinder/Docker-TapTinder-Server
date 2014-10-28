@@ -45,7 +45,7 @@ CNAME_PREFIX="$1"
 CMD="$2"
 CLIENT="$3"
 DEBUG="$4"
-DEBUG_SETUP="$6"
+DEBUG_SETUP="$5"
 
 if [ -z "$TTS_IMAGE" ]; then
 	TTS_IMAGE="mj41/tt-server:latest"
@@ -72,13 +72,12 @@ CNAME_DB="${CNAME_PREFIX}-s-db"
 CNAME_DB_DATA="${CNAME_PREFIX}-s-db-data"
 CNAME_REPOS="${CNAME_PREFIX}-repos"
 CNAME_DATA="${CNAME_PREFIX}-s-data"
-CNAME_SETUP="${CNAME_PREFIX}-s-setup"
 CNAME_WEB="${CNAME_PREFIX}-s-web"
 
 # Setup data and app containers.
 if [ "$CMD" == "setup" ]; then
 	# Prepare 'db-data'
-	docker run -d -t --name $CNAME_DB_DATA -v /var/lib/mysql busybox /bin/sh
+	docker run -i -t --name $CNAME_DB_DATA -v /var/lib/mysql busybox /bin/sh -c 'chmod -R a+rwx /var/lib/mysql'
 	# Grant 'with grant options' to root@%.
 	docker run --rm -i -t --volumes-from $CNAME_DB_DATA -v ~/scripts/:/root/scripts/:r dockerfile/mariadb /bin/bash -c $" \
 	   mysql_install_db && \
@@ -107,20 +106,16 @@ if [ "$CMD" == "setup" ]; then
 		chcon -Rt svirt_sandbox_file_t $LOCAL_TTDEV_DIR
 		echo "You can run:"
 		echo "cd /home/taptinder/ttdev/tt-server/ ; utils/ttdocker-setup.sh"
-		docker run --rm -i -t -p 2200:2200 --link $CNAME_DB:db -u taptinder --name $CNAME_SETUP \
+		docker run -i -t -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_DATA \
 		  -v $LOCAL_TTDEV_DIR:/home/taptinder/ttdev:rw $TTS_IMAGE /bin/bash
 
 	# Run ttdocker-setup.sh.
 	else
-		docker run --rm -i -t -p 2200:2200 --link $CNAME_DB:db -u taptinder --name $CNAME_SETUP \
+		docker run -d -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_DATA \
-		  $TTS_IMAGE /bin/bash -c 'cd /home/taptinder/tt-server/ && utils/ttdocker-setup.sh'
+		  $TTS_IMAGE /bin/bash -c 'utils/ttdocker-setup.sh && script/taptinder_web_server.pl -r -p 2000'
 	fi
-
-	docker run -d -p 2200:2200 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB $TTS_IMAGE /bin/sh -c \
-	  'script/taptinder_web_server.pl -r -p 2200'
-
 fi
 
 if [ "$CMD" == "start" ]; then
