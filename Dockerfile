@@ -2,7 +2,7 @@ FROM centos:latest
 MAINTAINER Michal Jurosz <docker@mj41.cz>
 
 RUN yum install -y perl perl-Test-Simple perl-Test-More perl-Test-Harness perl-ExtUtils-MakeMaker \
-     perl-ExtUtils-Install perl-Module-Build perl-ExtUtils-MakeMaker \
+     perl-ExtUtils-Install perl-Module-Build perl-ExtUtils-MakeMaker perl-DBD-MySQL \
      mariadb graphviz expat expat-devel \
      make gcc gcc-c++ tree tar gzip git openssl-devel \
   && yum clean all
@@ -39,7 +39,7 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
      Catalyst::Model::DBIC::Schema Catalyst::Plugin::StackTrace Catalyst::Action::RenderView \
      Catalyst::Authentication::Store::DBIx::Class Catalyst::Model::File Catalyst::Controller::REST \
      Catalyst::Plugin::Authorization::Roles \
-  && ~/perl5/bin/cpanm --force -v MooseX::Daemonize \
+  && ~/perl5/bin/cpanm --force -v MooseX::Daemonize Module::Install \
   && ~/perl5/bin/cpanm CPAN \
   && ~/perl5/bin/cpanm Starman SQL::Translator GraphViz Catalyst::Restarter FCGI FCGI::ProcManager \
   && rm -rf /tmp/cpanm/
@@ -47,7 +47,7 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
 RUN git clone https://github.com/mj41/TapTinder.git tt-server
 WORKDIR /home/taptinder/tt-server
 RUN echo "Force Docker image rebuild of TapTinder server to particular revision." \
-  && git fetch && git reset --hard d9fdccd \
+  && git fetch && git reset --hard ab9a8128c63c \
   && git log -n1 --oneline HEAD
 
 ENV TAPTINDER_COMPONENT server
