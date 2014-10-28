@@ -15,10 +15,16 @@ Available on [registry.hub.docker.com/u/mj41/tt-server](https://registry.hub.doc
 Fast start
 ==========
 
-    # download, create and run 'mytts' container
-    docker run -i -t -p 2200:2200 -u root --name mytts mj41/tt-server:latest
+    # Setup and start 'ttlocal' containers set.
+    ./ttdocker.sh ttlocal setup noclient debug
 
-    # to use TapTinder server web interface
+	# Stop all running 'ttlocal' containers.
+    ./ttdocker.sh ttlocal stop
+
+	# Start 'ttlocal' containers.
+    ./ttdocker.sh ttlocal stop
+
+    # Explore TapTinder server web interface.
     firefox localhost:2200
 
 Docker intro
@@ -29,21 +35,5 @@ See [Using Docker](https://docs.docker.com/userguide/usingdocker/)
     # to see your Docker containers
     docker ps -a
 
-    # stop, start already created 'mytts' container
-    docker stop mytts
-    docker start mytts
-
     # to see console (new output, similar to --follow mode)
-    docker attach mytts
-
-Explore
-=======
-
-    # to create 'mytts-exp' and run Bash there
-    docker run -i -t -p 2200:2200 -u root --name mytts-exp mj41/tt-server:prod /bin/bash
-
-    # start TapTinder server
-    utils/start-server.sh prod d debug
-
-    # run already created 'mytts-exp' container
-    docker start -i mytts-exp
+    docker attach ttlocal-s-web
