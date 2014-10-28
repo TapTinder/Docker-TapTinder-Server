@@ -45,13 +45,13 @@ CNAME_PREFIX="$1"
 CMD="$2"
 CLIENT="$3"
 DEBUG="$4"
-DEBUG_SETUP="$5"
+DEBUG_SETUP="$6"
 
 if [ -z "$TTS_IMAGE" ]; then
-	TTS_IMAGE="mj41/local-tt-server:latest"
+	TTS_IMAGE="mj41/tt-server:latest"
 fi
 if [ -z "$TTCL_IMAGE" ]; then
-	TTCL_IMAGE="mj41/local-tt-client:latest"
+	TTCL_IMAGE="mj41/tt-client:latest"
 fi
 
 if [ "$CMD" != "setup" -a "$CMD" != "start" -a "$CMD" != "stop" -a "$CMD" != "rm" ]; then
@@ -68,27 +68,36 @@ if [ "$DEBUG_SETUP" -a "$DEBUG_SETUP" != "yes_ttdev_magic" ]; then
 	exit 1
 fi
 
-CNAME_REPOS="${CNAME_PREFIX}-repos"
 CNAME_DB="${CNAME_PREFIX}-s-db"
 CNAME_DB_DATA="${CNAME_PREFIX}-s-db-data"
+CNAME_REPOS="${CNAME_PREFIX}-repos"
 CNAME_DATA="${CNAME_PREFIX}-s-data"
 CNAME_SETUP="${CNAME_PREFIX}-s-setup"
 CNAME_WEB="${CNAME_PREFIX}-s-web"
 
+# Setup data and app containers.
 if [ "$CMD" == "setup" ]; then
+	# Prepare 'db-data'
 	docker run -d -t --name $CNAME_DB_DATA -v /var/lib/mysql busybox /bin/sh
-	#docker run --rm -i -t --volumes-from $CNAME_DB_DATA -v ~/scripts/:/root/scripts/:r dockerfile/mariadb /bin/bash -c 'mysql_install_db && /usr/bin/mysqld_safe --datadir='/var/lib/mysql' &&
+	# Grant 'with grant options' to root@%.
 	docker run --rm -i -t --volumes-from $CNAME_DB_DATA -v ~/scripts/:/root/scripts/:r dockerfile/mariadb /bin/bash -c $" \
 	   mysql_install_db && \
 	   (/usr/bin/mysqld_safe --datadir='/var/lib/mysql' &>/dev/null &) && sleep 3 && \
 	   mysql -uroot -e \$\"grant all privileges on *.* to 'root'@'%' with grant option; FLUSH PRIVILEGES;\" && \
 	   mysql -uroot -e 'SELECT User,Host,Password FROM mysql.user'; \
 	"
+	# Start 'db'
 	docker run -d --name $CNAME_DB -p 3306:3306 --volumes-from $CNAME_DB_DATA dockerfile/mariadb
 
-	docker run -d -t --name $CNAME_REPOS -v /opt/taptinder/repos busybox /bin/sh
-	docker run -d -t --name $CNAME_DATA -v /opt/taptinder/server busybox /bin/sh
+	# Prepare 'repos' data container.
+	docker run -i -t --name $CNAME_REPOS -v /opt/taptinder/repos busybox /bin/sh -c \
+	  'adduser -D -H taptinder ; chown taptinder:taptinder -R /opt/taptinder ; chmod -R a+rwx /opt/taptinder'
 
+	# Prepare 'server' data container.
+	docker run -i -t --name $CNAME_DATA -v /opt/taptinder/server busybox /bin/sh -c \
+	  'adduser -D -H taptinder ; chown taptinder:taptinder -R /opt/taptinder ; chmod -R a+rwx /opt/taptinder'
+
+	# To debug ttdocker-setup.sh procedure.
 	if [ "$DEBUG_SETUP" ]; then
 		LOCAL_TTDEV_DIR="$HOME/ttdev"
 		if [ ! -d "$LOCAL_TTDEV_DIR/tt-server" ]; then
@@ -98,15 +107,20 @@ if [ "$CMD" == "setup" ]; then
 		chcon -Rt svirt_sandbox_file_t $LOCAL_TTDEV_DIR
 		echo "You can run:"
 		echo "cd /home/taptinder/ttdev/tt-server/ ; utils/ttdocker-setup.sh"
-		docker run --rm -i -t -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_SETUP \
+		docker run --rm -i -t -p 2200:2200 --link $CNAME_DB:db -u taptinder --name $CNAME_SETUP \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_DATA \
 		  -v $LOCAL_TTDEV_DIR:/home/taptinder/ttdev:rw $TTS_IMAGE /bin/bash
+
+	# Run ttdocker-setup.sh.
 	else
-		docker run --rm -i -t -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_SETUP \
+		docker run --rm -i -t -p 2200:2200 --link $CNAME_DB:db -u taptinder --name $CNAME_SETUP \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_DATA \
 		  $TTS_IMAGE /bin/bash -c 'cd /home/taptinder/tt-server/ && utils/ttdocker-setup.sh'
 	fi
-	docker stop $CNAME_DB_DATA
+
+	docker run -d -p 2200:2200 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB $TTS_IMAGE /bin/sh -c \
+	  'script/taptinder_web_server.pl -r -p 2200'
+
 fi
 
 if [ "$CMD" == "start" ]; then
@@ -125,7 +139,6 @@ if [ "$CMD" == "rm" ]; then
 	docker rm -f $CNAME_DB_DATA || :
 	docker rm -f $CNAME_REPOS || :
 	docker rm -f $CNAME_DATA || :
-	docker rm -f $CNAME_SETUP || :
 	docker rm -f $CNAME_WEB || :
 	exit
 fi
