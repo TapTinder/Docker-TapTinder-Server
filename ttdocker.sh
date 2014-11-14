@@ -1,8 +1,5 @@
 #/bin/bash
 
-set -e
-set -x
-
 function echo_help {
 cat <<USAGE_END
 Usage:
@@ -48,6 +45,13 @@ CLIENT_PAR="$3"
 DEBUG="$4"
 DEBUG_SETUP="$5"
 
+if [ "$DEBUG" = "debug" ]; then
+	set -e
+	set -x
+else
+	set +e
+fi
+
 if [ -z "$TTS_IMAGE" ]; then
 	TTS_IMAGE="mj41/tt-server:latest"
 fi
@@ -75,10 +79,6 @@ if [ "$CLIENT_PAR" != "no-client" ]; then
 fi
 if [ "$CLIENT_PAR" != "client-only" ]; then
 	SERVER=1
-fi
-
-if [ "$DEBUG" != "debug" ]; then
-	set +e
 fi
 
 if [ "$DEBUG_SETUP" -a "$DEBUG_SETUP" != "yes_ttdev_magic" ]; then
