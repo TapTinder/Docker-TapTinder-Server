@@ -139,12 +139,17 @@ if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" ]; then
 		exit 1
 	fi
 	chcon -Rt svirt_sandbox_file_t $LOCAL_TTDEV_DIR
-	echo "You can run:"
-	echo "cd /home/ttus/ttdev/tt-server/ ; utils/ttdocker-setup.sh force-setup base"
 
 	PORT_MAPPING="2000:2000"
 	if [ "$CMD" = "wbash" ]; then
 		PORT_MAPPING="2001:2000"
+		echo "To debug web application (mapped to host port 2001) run:"
+		echo "cd /home/ttus/ttdev/tt-server/ ; TAPTINDER_SERVER_CONF_DIR=/opt/taptinder/server/conf script/taptinder_web_server.pl -r -p 2000"
+		echo ""
+	else
+		echo "To debug setup procedure you can run:"
+		echo "cd /home/ttus/ttdev/tt-server/ ; utils/ttdocker-setup.sh force-setup base"
+		echo ""
 	fi
 	docker run -i -t --rm -p $PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEBUG \
 	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
