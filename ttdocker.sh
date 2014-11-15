@@ -92,6 +92,7 @@ CNAME_DB="${CNAME_PREFIX}-s-db"
 CNAME_DB_DATA="${CNAME_PREFIX}-s-db-data"
 CNAME_REPOS="${CNAME_PREFIX}-repos"
 CNAME_WEB_DATA="${CNAME_PREFIX}-s-data"
+CNAME_WEB_CONF="${CNAME_PREFIX}-s-web-conf"
 CNAME_WEB="${CNAME_PREFIX}-s-web"
 CNAME_CLIENT="${CNAME_PREFIX}-cl"
 CNAME_CLIENT_DATA="${CNAME_PREFIX}-c-data"
@@ -119,7 +120,11 @@ if [ "$CMD" == "setup" -a "$SERVER" ]; then
 	docker run -d --name $CNAME_DB -p 3306:3306 --volumes-from $CNAME_DB_DATA dockerfile/mariadb
 
 	# Prepare 'server' data container.
-	docker run -i -t --name $CNAME_WEB_DATA -v /opt/taptinder/server busybox /bin/sh -c \
+	docker run -i -t --name $CNAME_WEB_DATA -v /opt/taptinder/server-data busybox /bin/sh -c \
+	  'adduser -D -H taptinder ; chown taptinder:taptinder -R /opt/taptinder ; chmod -R a+rwx /opt/taptinder'
+
+	# Prepare 'server' configuration container.
+	docker run -i -t --name $CNAME_WEB_CONF -v /opt/taptinder/server-conf busybox /bin/sh -c \
 	  'adduser -D -H taptinder ; chown taptinder:taptinder -R /opt/taptinder ; chmod -R a+rwx /opt/taptinder'
 
 	# To debug ttdocker-setup.sh procedure.
@@ -133,13 +138,13 @@ if [ "$CMD" == "setup" -a "$SERVER" ]; then
 		echo "You can run:"
 		echo "cd /home/taptinder/ttdev/tt-server/ ; utils/ttdocker-setup.sh"
 		docker run -i -t -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB \
-		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA \
+		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 		  -v $LOCAL_TTDEV_DIR:/home/taptinder/ttdev:rw $TTS_IMAGE /bin/bash
 
 	# Run ttdocker-setup.sh.
 	else
 		docker run -d -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB \
-		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA \
+		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 		  $TTS_IMAGE /bin/bash -c 'utils/ttdocker-setup.sh && script/taptinder_web_server.pl -r -p 2000'
 	fi
 fi
