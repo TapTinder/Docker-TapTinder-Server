@@ -52,4 +52,4 @@ RUN echo "Force Docker image rebuild of TapTinder server to particular revision.
 
 ENV TAPTINDER_COMPONENT server
 EXPOSE 2000
-CMD TAPTINDER_SERVER_CONF_DIR=/opt/taptinder/server/conf script/taptinder_web_server.pl -r -p 2000
+CMD utils/ttdocker-setup.sh && TAPTINDER_SERVER_CONF_DIR=/opt/taptinder/server/conf script/taptinder_web_server.pl -r -p 2000

@@ -154,7 +154,8 @@ if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" ]; then
 elif [ "$CMD" == "setup" -a "$SERVER"  ]; then
 	docker run -d -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
 	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
-	  $TTS_IMAGE /bin/bash -c 'utils/ttdocker-setup.sh && script/taptinder_web_server.pl -r -p 2000'
+	  $TTS_IMAGE /bin/bash -c \
+	  'utils/ttdocker-setup.sh && TAPTINDER_SERVER_CONF_DIR=/opt/taptinder/server/conf script/taptinder_web_server.pl -r -p 2000'
 fi
 
 # Setup: Client.
