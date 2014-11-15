@@ -176,12 +176,13 @@ fi
 
 # rm
 if [ "$CMD" == "rm" ]; then
+	docker rm -f $CNAME_CLIENT || :
+	docker rm -f $CNAME_CLIENT_DATA || :
+	docker rm -f $CNAME_WEB || :
+	docker rm -f $CNAME_WEB_DATA || :
+	docker rm -f $CNAME_WEB_CONF || :
+	docker rm -f $CNAME_REPOS || :
 	docker rm -f $CNAME_DB || :
 	docker rm -f $CNAME_DB_DATA || :
-	docker rm -f $CNAME_REPOS || :
-	docker rm -f $CNAME_WEB_DATA || :
-	docker rm -f $CNAME_WEB || :
-	docker rm -f $CNAME_CLIENT_DATA || :
-	docker rm -f $CNAME_CLIENT || :
 	exit
 fi
