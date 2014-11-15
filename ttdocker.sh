@@ -140,8 +140,13 @@ if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" ]; then
 	fi
 	chcon -Rt svirt_sandbox_file_t $LOCAL_TTDEV_DIR
 	echo "You can run:"
-	echo "cd /home/ttus/ttdev/tt-server/ ; utils/ttdocker-setup.sh"
-	docker run -i -t --rm -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEBUG \
+	echo "cd /home/ttus/ttdev/tt-server/ ; utils/ttdocker-setup.sh force-setup base"
+
+	PORT_MAPPING="2000:2000"
+	if [ "$CMD" = "wbash" ]; then
+		PORT_MAPPING="2001:2000"
+	fi
+	docker run -i -t --rm -p $PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEBUG \
 	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 	  -v $LOCAL_TTDEV_DIR:/home/ttus/ttdev:rw $TTS_IMAGE /bin/bash
 
