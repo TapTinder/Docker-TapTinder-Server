@@ -15,6 +15,7 @@ Usage:
   start ... start all containers
   stop ... stop all containers
   rm ... remove all containers (delete all data)
+  wbash ... start bash inside temporary web container
 
   client ... start also testing (tt-client container)
   no-client ... do not start tt-client container
@@ -59,33 +60,34 @@ if [ -z "$TTCL_IMAGE" ]; then
 	TTCL_IMAGE="mj41/tt-client:latest"
 fi
 
-if [ "$CMD" != "setup" -a "$CMD" != "start" -a "$CMD" != "stop" -a "$CMD" != "rm" ]; then
-    echo "Missing/unknown second parameter 'start', 'stop' or 'rm'."
+if [ "$CMD" != "setup" -a "$CMD" != "start" -a "$CMD" != "stop" -a "$CMD" != "rm" -a "$CMD" != "wbash" ]; then
+    echo "Missing/unknown second parameter 'setup', 'start', 'stop', 'rm' or 'wbash'."
     echo
     echo_help
     exit 1
 fi
 
-if [ "$CLIENT_PAR" != "client" -a "$CLIENT_PAR" != "no-client" -a "$CLIENT_PAR" != "client-only" ]; then
-    echo "Missing/unknown third parameter 'client', 'no-client' or 'client-only'."
-    echo
-    echo_help
-    exit 1
-fi
 CLIENT=0
 SERVER=0
-if [ "$CLIENT_PAR" != "no-client" ]; then
-	CLIENT=1
-fi
-if [ "$CLIENT_PAR" != "client-only" ]; then
-	SERVER=1
-fi
-
-if [ "$DEBUG_SETUP" -a "$DEBUG_SETUP" != "yes_ttdev_magic" ]; then
-	echo "Unknown option '$DEBUG_SETUP'."
-	echo
-	echo_help
-	exit 1
+if [ "$CMD" != "wbash" ]; then
+	if [ "$CLIENT_PAR" != "client" -a "$CLIENT_PAR" != "no-client" -a "$CLIENT_PAR" != "client-only" ]; then
+		echo "Missing/unknown third parameter 'client', 'no-client' or 'client-only'."
+		echo
+		echo_help
+		exit 1
+	fi
+	if [ "$CLIENT_PAR" != "no-client" ]; then
+		CLIENT=1
+	fi
+	if [ "$CLIENT_PAR" != "client-only" ]; then
+		SERVER=1
+	fi
+	if [ "$DEBUG_SETUP" -a "$DEBUG_SETUP" != "yes_ttdev_magic" ]; then
+		echo "Unknown option '$DEBUG_SETUP'."
+		echo
+		echo_help
+		exit 1
+	fi
 fi
 
 CNAME_DB="${CNAME_PREFIX}-s-db"
@@ -94,6 +96,7 @@ CNAME_REPOS="${CNAME_PREFIX}-repos"
 CNAME_WEB_DATA="${CNAME_PREFIX}-s-data"
 CNAME_WEB_CONF="${CNAME_PREFIX}-s-web-conf"
 CNAME_WEB="${CNAME_PREFIX}-s-web"
+CNAME_WEB_DEBUG="${CNAME_PREFIX}-s-web-debug"
 CNAME_CLIENT="${CNAME_PREFIX}-cl"
 CNAME_CLIENT_DATA="${CNAME_PREFIX}-c-data"
 
@@ -119,34 +122,34 @@ if [ "$CMD" == "setup" -a "$SERVER" ]; then
 	# Start 'db'
 	docker run -d --name $CNAME_DB -p 3306:3306 --volumes-from $CNAME_DB_DATA dockerfile/mariadb
 
-	# Prepare 'server' data container.
+	# Prepare server data container.
 	docker run -i -t --name $CNAME_WEB_DATA -v /opt/taptinder/server-data busybox /bin/sh -c \
 	  'adduser -D -H taptinder ; chown taptinder:taptinder -R /opt/taptinder ; chmod -R a+rwx /opt/taptinder'
 
-	# Prepare 'server' configuration container.
+	# Prepare server configuration container.
 	docker run -i -t --name $CNAME_WEB_CONF -v /opt/taptinder/server-conf busybox /bin/sh -c \
 	  'adduser -D -H taptinder ; chown taptinder:taptinder -R /opt/taptinder ; chmod -R a+rwx /opt/taptinder'
+fi
 
-	# To debug ttdocker-setup.sh procedure.
-	if [ "$DEBUG_SETUP" ]; then
-		LOCAL_TTDEV_DIR="$HOME/ttdev"
-		if [ ! -d "$LOCAL_TTDEV_DIR/tt-server" ]; then
-			echo "Directory '$LOCAL_TTDEV_DIR/tt-server' not found."
-			exit 1
-		fi
-		chcon -Rt svirt_sandbox_file_t $LOCAL_TTDEV_DIR
-		echo "You can run:"
-		echo "cd /home/taptinder/ttdev/tt-server/ ; utils/ttdocker-setup.sh"
-		docker run -i -t -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB \
-		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
-		  -v $LOCAL_TTDEV_DIR:/home/taptinder/ttdev:rw $TTS_IMAGE /bin/bash
-
-	# Run ttdocker-setup.sh.
-	else
-		docker run -d -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB \
-		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
-		  $TTS_IMAGE /bin/bash -c 'utils/ttdocker-setup.sh && script/taptinder_web_server.pl -r -p 2000'
+# To debug ttdocker-setup.sh procedure.
+if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" ]; then
+	LOCAL_TTDEV_DIR="$HOME/ttdev"
+	if [ ! -d "$LOCAL_TTDEV_DIR/tt-server" ]; then
+		echo "Directory '$LOCAL_TTDEV_DIR/tt-server' not found."
+		exit 1
 	fi
+	chcon -Rt svirt_sandbox_file_t $LOCAL_TTDEV_DIR
+	echo "You can run:"
+	echo "cd /home/taptinder/ttdev/tt-server/ ; utils/ttdocker-setup.sh"
+	docker run -i -t --rm -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB_DEBUG \
+	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
+	  -v $LOCAL_TTDEV_DIR:/home/taptinder/ttdev:rw $TTS_IMAGE /bin/bash
+
+# Run ttdocker-setup.sh and start server.
+elif [ "$CMD" == "setup" -a "$SERVER"  ]; then
+	docker run -d -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB \
+	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
+	  $TTS_IMAGE /bin/bash -c 'utils/ttdocker-setup.sh && script/taptinder_web_server.pl -r -p 2000'
 fi
 
 # Setup: Client.
