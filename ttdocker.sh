@@ -105,7 +105,7 @@ CNAME_CLIENT_DATA="${CNAME_PREFIX}-c-data"
 if [ "$CMD" == "setup" ]; then
 	# Prepare 'repos' data container.
 	docker run -i -t --name $CNAME_REPOS -v /opt/taptinder/repos busybox /bin/sh -c \
-	  'adduser -D -H taptinder ; chown taptinder:taptinder -R /opt/taptinder ; chmod -R a+rwx /opt/taptinder'
+	  'adduser -u 461 -D ttus ttus ; chown ttus:ttus -R /opt/taptinder/repos ; chmod -R a+rwx /opt/taptinder/repos'
 fi
 
 # Setup: Server.
@@ -123,12 +123,12 @@ if [ "$CMD" == "setup" -a "$SERVER" ]; then
 	docker run -d --name $CNAME_DB -p 3306:3306 --volumes-from $CNAME_DB_DATA dockerfile/mariadb
 
 	# Prepare server data container.
-	docker run -i -t --name $CNAME_WEB_DATA -v /opt/taptinder/server-data busybox /bin/sh -c \
-	  'adduser -D -H taptinder ; chown taptinder:taptinder -R /opt/taptinder ; chmod -R a+rwx /opt/taptinder'
+	docker run -i -t --name $CNAME_WEB_DATA -v /opt/taptinder/server/data busybox /bin/sh -c \
+	  'adduser -u 461 -D ttus ttus ; chown ttus:ttus -R /opt/taptinder/server ; chmod -R u+rwx,go-rwx /opt/taptinder/server'
 
 	# Prepare server configuration container.
-	docker run -i -t --name $CNAME_WEB_CONF -v /opt/taptinder/server-conf busybox /bin/sh -c \
-	  'adduser -D -H taptinder ; chown taptinder:taptinder -R /opt/taptinder ; chmod -R a+rwx /opt/taptinder'
+	docker run -i -t --name $CNAME_WEB_CONF -v /opt/taptinder/server/conf busybox /bin/sh -c \
+	  'adduser -u 461 -D ttus ttus ; chown ttus:ttus -R /opt/taptinder/server ; chmod -R u+rwx,go-rwx /opt/taptinder/server'
 fi
 
 # To debug ttdocker-setup.sh procedure.
@@ -140,14 +140,14 @@ if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" ]; then
 	fi
 	chcon -Rt svirt_sandbox_file_t $LOCAL_TTDEV_DIR
 	echo "You can run:"
-	echo "cd /home/taptinder/ttdev/tt-server/ ; utils/ttdocker-setup.sh"
-	docker run -i -t --rm -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB_DEBUG \
+	echo "cd /home/ttus/ttdev/tt-server/ ; utils/ttdocker-setup.sh"
+	docker run -i -t --rm -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEBUG \
 	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
-	  -v $LOCAL_TTDEV_DIR:/home/taptinder/ttdev:rw $TTS_IMAGE /bin/bash
+	  -v $LOCAL_TTDEV_DIR:/home/ttus/ttdev:rw $TTS_IMAGE /bin/bash
 
 # Run ttdocker-setup.sh and start server.
 elif [ "$CMD" == "setup" -a "$SERVER"  ]; then
-	docker run -d -p 2000:2000 --link $CNAME_DB:db -u taptinder --name $CNAME_WEB \
+	docker run -d -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
 	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 	  $TTS_IMAGE /bin/bash -c 'utils/ttdocker-setup.sh && script/taptinder_web_server.pl -r -p 2000'
 fi
@@ -156,7 +156,7 @@ fi
 if [ "$CMD" == "setup" -a "$CLIENT" ]; then
 	# Prepare 'client' data container.
 	docker run -i -t --name $CNAME_CLIENT_DATA -v /opt/taptinder/client busybox /bin/sh -c \
-	  'adduser -D -H ttucl ; chown ttucl:ttucl -R /opt/taptinder ; chmod -R a+rwx /opt/taptinder'
+	  'adduser -u 460 -D ttucl ttucl ; chown ttucl:ttucl -R /opt/taptinder/client ; chmod -R u+rwx,go-rwx /opt/taptinder/client'
 
 	docker run -d --link $CNAME_WEB:web -u ttucl --name $CNAME_CLIENT \
 	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_CLIENT_DATA \
