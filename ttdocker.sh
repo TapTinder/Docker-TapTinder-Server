@@ -154,9 +154,10 @@ if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" ]; then
 	docker run -i -t --rm -p $PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEBUG \
 	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 	  -v $LOCAL_TTDEV_DIR:/home/ttus/ttdev:rw $TTS_IMAGE /bin/bash
+fi
 
 # Run ttdocker-setup.sh and start server.
-elif [ "$CMD" == "setup" -a "$SERVER"  ]; then
+if [ "$CMD" == "setup" -a "$SERVER"  ]; then
 	docker run -d -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
 	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 	  $TTS_IMAGE /bin/bash -c \
