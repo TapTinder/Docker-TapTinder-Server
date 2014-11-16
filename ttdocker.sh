@@ -30,6 +30,20 @@ Example:
 USAGE_END
 }
 
+function container_exists {
+	CONT_NAME="$1"
+	set +e
+	docker inspect $CONT_NAME &>/dev/null
+	ECODE="$?"
+	set -e
+	#echo "Output: $ECODE"
+	if [ "$ECODE" == 1 ]; then
+		echo no
+	else
+		echo yes
+	fi
+}
+
 if [ -z "$1" ]; then
     echo_help
     exit 1
@@ -103,36 +117,58 @@ CNAME_CLIENT_DATA="${CNAME_PREFIX}-c-data"
 
 # Setup: Client and/or server parts.
 if [ "$CMD" == "setup" ]; then
-	# Prepare 'repos' data container.
-	docker run -i -t --name $CNAME_REPOS -v /opt/taptinder/repos busybox /bin/sh -c \
-	  'adduser -u 461 -D ttus ttus ; chown ttus:ttus -R /opt/taptinder/repos ; chmod -R a+rwx /opt/taptinder/repos'
+	if [ $(container_exists $CNAME_REPOS) = "yes" ]; then
+		echo "Container $CNAME_REPOS already exist."
+	else
+		# Prepare 'repos' data container.
+		docker run -i -t --name $CNAME_REPOS -v /opt/taptinder/repos busybox /bin/sh -c \
+		  'adduser -u 461 -D ttus ttus ; chown ttus:ttus -R /opt/taptinder/repos ; chmod -R a+rwx /opt/taptinder/repos'
+	fi
 fi
 
 # Setup: Server.
-if [ "$CMD" == "setup" -a "$SERVER" ]; then
-	# Prepare 'db-data'
-	docker run -i -t --name $CNAME_DB_DATA -v /var/lib/mysql busybox /bin/sh -c 'chmod -R a+rwx /var/lib/mysql'
-	# Grant 'with grant options' to root@%.
-	docker run --rm -i -t --volumes-from $CNAME_DB_DATA -v ~/scripts/:/root/scripts/:r dockerfile/mariadb /bin/bash -c $" \
-	   mysql_install_db && \
-	   (/usr/bin/mysqld_safe --datadir='/var/lib/mysql' &>/dev/null &) && sleep 3 && \
-	   mysql -uroot -e \$\"grant all privileges on *.* to 'root'@'%' with grant option; FLUSH PRIVILEGES;\" && \
-	   mysql -uroot -e 'SELECT User,Host,Password FROM mysql.user'; \
-	"
-	# Start 'db'
-	docker run -d --name $CNAME_DB -p 3306:3306 --volumes-from $CNAME_DB_DATA dockerfile/mariadb
+if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 
-	# Prepare server data container.
-	docker run -i -t --name $CNAME_WEB_DATA -v /opt/taptinder/server/data busybox /bin/sh -c \
-	  'adduser -u 461 -D ttus ttus ; chown ttus:ttus -R /opt/taptinder/server ; chmod -R u+rwx,go-rwx /opt/taptinder/server'
+	if [ $(container_exists $CNAME_DB_DATA) = "yes" ]; then
+		echo "Container $CNAME_DB_DATA already exist."
+	else
+		# Prepare 'db-data'
+		docker run -i -t --name $CNAME_DB_DATA -v /var/lib/mysql busybox /bin/sh -c 'chmod -R a+rwx /var/lib/mysql'
+		# Grant 'with grant options' to root@%.
+		docker run --rm -i -t --volumes-from $CNAME_DB_DATA -v ~/scripts/:/root/scripts/:r dockerfile/mariadb /bin/bash -c $" \
+		   mysql_install_db && \
+		   (/usr/bin/mysqld_safe --datadir='/var/lib/mysql' &>/dev/null &) && sleep 3 && \
+		   mysql -uroot -e \$\"grant all privileges on *.* to 'root'@'%' with grant option; FLUSH PRIVILEGES;\" && \
+		   mysql -uroot -e 'SELECT User,Host,Password FROM mysql.user'; \
+		"
+	fi
 
-	# Prepare server configuration container.
-	docker run -i -t --name $CNAME_WEB_CONF -v /opt/taptinder/server/conf busybox /bin/sh -c \
-	  'adduser -u 461 -D ttus ttus ; chown ttus:ttus -R /opt/taptinder/server ; chmod -R u+rwx,go-rwx /opt/taptinder/server'
+	if [ $(container_exists $CNAME_DB) = "yes" ]; then
+		echo "Container $CNAME_DB already exist."
+	else
+		# Start 'db'
+		docker run -d --name $CNAME_DB -p 3306:3306 --volumes-from $CNAME_DB_DATA dockerfile/mariadb
+	fi
+
+	if [ $(container_exists $CNAME_WEB_DATA) = "yes" ]; then
+		echo "Container $CNAME_WEB_DATA already exist."
+	else
+		# Prepare server data container.
+		docker run -i -t --name $CNAME_WEB_DATA -v /opt/taptinder/server/data busybox /bin/sh -c \
+		  'adduser -u 461 -D ttus ttus ; chown ttus:ttus -R /opt/taptinder/server ; chmod -R u+rwx,go-rwx /opt/taptinder/server'
+	fi
+
+	if [ $(container_exists $CNAME_WEB_CONF) = "yes" ]; then
+		echo "Container $CNAME_WEB_CONF already exist."
+	else
+		# Prepare server configuration container.
+		docker run -i -t --name $CNAME_WEB_CONF -v /opt/taptinder/server/conf busybox /bin/sh -c \
+		  'adduser -u 461 -D ttus ttus ; chown ttus:ttus -R /opt/taptinder/server ; chmod -R u+rwx,go-rwx /opt/taptinder/server'
+	fi
 fi
 
 # To debug ttdocker-setup.sh procedure.
-if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" ]; then
+if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" == 1 ]; then
 	LOCAL_TTDEV_DIR="$HOME/ttdev"
 	if [ ! -d "$LOCAL_TTDEV_DIR/tt-server" ]; then
 		echo "Directory '$LOCAL_TTDEV_DIR/tt-server' not found."
@@ -157,39 +193,51 @@ if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" ]; then
 fi
 
 # Run ttdocker-setup.sh and start server.
-if [ "$CMD" == "setup" -a "$SERVER"  ]; then
-	docker run -d -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
-	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
-	  $TTS_IMAGE /bin/bash -c \
-	  'utils/ttdocker-setup.sh && script/taptinder_web_server.pl -r -p 2000'
+if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
+	if [ $(container_exists $CNAME_WEB) = "yes" ]; then
+		echo "Container $CNAME_WEB already exist."
+	else
+		docker run -d -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
+		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
+		  $TTS_IMAGE /bin/bash -c \
+		  'utils/ttdocker-setup.sh && script/taptinder_web_server.pl -r -p 2000'
+	fi
 fi
 
 # Setup: Client.
-if [ "$CMD" == "setup" -a "$CLIENT" ]; then
-	# Prepare 'client' data container.
-	docker run -i -t --name $CNAME_CLIENT_DATA -v /opt/taptinder/client busybox /bin/sh -c \
-	  'adduser -u 460 -D ttucl ttucl ; chown ttucl:ttucl -R /opt/taptinder/client ; chmod -R u+rwx,go-rwx /opt/taptinder/client'
+if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
+	if [ $(container_exists $CNAME_CLIENT_DATA) = "yes" ]; then
+		echo "Container $CNAME_CLIENT_DATA already exist."
+	else
+		# Prepare 'client' data container.
+		docker run -i -t --name $CNAME_CLIENT_DATA -v /opt/taptinder/client busybox /bin/sh -c \
+		  'adduser -u 460 -D ttucl ttucl ; chown ttucl:ttucl -R /opt/taptinder/client ; chmod -R u+rwx,go-rwx /opt/taptinder/client'
+	fi
 
-	docker run -d --link $CNAME_WEB:web -u ttucl --name $CNAME_CLIENT \
-	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_CLIENT_DATA \
-	  $TTCL_IMAGE
+	if [ $(container_exists $CNAME_CLIENT) = "yes" ]; then
+		echo "Container $CNAME_CLIENT already exist."
+	else
+		docker run -d --link $CNAME_WEB:web -u ttucl --name $CNAME_CLIENT \
+		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_CLIENT_DATA \
+		  $TTCL_IMAGE
+	fi
 fi
 
 # start
-if [ "$CMD" == "start" -a "$SERVER" ]; then
+if [ "$CMD" == "start" -a "$SERVER" == 1 ]; then
 	docker start $CNAME_DB
 	docker start $CNAME_WEB
 fi
-if [ "$CMD" == "start" -a "$CLIENT" ]; then
+if [ "$CMD" == "start" -a "$CLIENT" == 1 ]; then
 	docker start $CNAME_CLIENT
 fi
 
 # stop
 # Stop order: client, web server, db.
-if [ "$CMD" == "stop" -a "$CLIENT" ]; then
+if [ "$CMD" == "stop" -a "$CLIENT" == 1 ]; then
 	docker stop $CNAME_CLIENT
 fi
-if [ "$CMD" == "stop" -a "$SERVER" ]; then
+if [ "$CMD" == "stop" -a "$SERVER" == 1 ]; then
 	docker stop $CNAME_WEB
 	docker stop $CNAME_DB
 fi
