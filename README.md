@@ -16,24 +16,24 @@ Fast start
 ==========
 
     # Setup and start 'ttlocal' containers set.
-    ./ttdocker.sh ttlocal setup noclient debug
+    ./ttdocker.sh ttlocal setup client debug
 
 	# Stop all running 'ttlocal' containers.
     ./ttdocker.sh ttlocal stop
 
 	# Start 'ttlocal' containers.
-    ./ttdocker.sh ttlocal stop
+    ./ttdocker.sh ttlocal start
 
     # Explore TapTinder server web interface.
-    firefox localhost:2200
+    firefox localhost:2000
 
 Docker intro
 ============
 
 See [Using Docker](https://docs.docker.com/userguide/usingdocker/)
 
-    # to see your Docker containers
+    # To see your Docker containers.
     docker ps -a
 
-    # to see console (new output, similar to --follow mode)
+    # To see console.
     docker attach ttlocal-s-web
