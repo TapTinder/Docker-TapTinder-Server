@@ -214,6 +214,11 @@ if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
 		  'adduser -u 460 -D ttucl ttucl ; chown ttucl:ttucl -R /opt/taptinder/client ; chmod -R u+rwx,go-rwx /opt/taptinder/client'
 	fi
 
+	if [ $(container_exists $CNAME_WEB) = "no" ]; then
+		echo "Container $CNAME_WEB not found. Please create it first."
+		exit 1
+	fi
+
 	if [ $(container_exists $CNAME_CLIENT) = "yes" ]; then
 		echo "Container $CNAME_CLIENT already exist."
 	else
@@ -243,9 +248,14 @@ if [ "$CMD" == "stop" -a "$SERVER" == 1 ]; then
 fi
 
 # rm
-if [ "$CMD" == "rm" ]; then
+if [ "$CMD" == "rm" -a "$CLIENT" == 1 ]; then
 	docker rm -f $CNAME_CLIENT || :
 	docker rm -f $CNAME_CLIENT_DATA || :
+fi
+if [ "$CMD" == "rm" -a "$SERVER" == 1 ]; then
+	if [ "$CLIENT" != 1 ]; then
+		docker stop $CNAME_CLIENT
+	fi
 	docker rm -f $CNAME_WEB || :
 	docker rm -f $CNAME_WEB_DATA || :
 	docker rm -f $CNAME_WEB_CONF || :
