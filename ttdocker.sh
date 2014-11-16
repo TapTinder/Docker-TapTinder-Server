@@ -111,6 +111,7 @@ CNAME_WEB_DATA="${CNAME_PREFIX}-s-data"
 CNAME_WEB_CONF="${CNAME_PREFIX}-s-web-conf"
 CNAME_WEB="${CNAME_PREFIX}-s-web"
 CNAME_WEB_DEBUG="${CNAME_PREFIX}-s-web-debug"
+CNAME_WORKER_REPOS="${CNAME_PREFIX}-s-wrepos"
 CNAME_CLIENT="${CNAME_PREFIX}-cl"
 CNAME_CLIENT_DATA="${CNAME_PREFIX}-c-data"
 
@@ -200,7 +201,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 		docker run -d -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 		  $TTS_IMAGE /bin/bash -c \
-		  'utils/ttdocker-setup.sh && script/taptinder_web_server.pl -r -p 2000'
+		  'utils/ttdocker-setup.sh no-force base && script/taptinder_web_server.pl -r -p 2000'
 	fi
 fi
 
@@ -228,10 +229,26 @@ if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
 	fi
 fi
 
+# Run worker to get new commits to db.
+if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
+	if [ $(container_exists $CNAME_WORKER_REPOS) = "yes" ]; then
+		echo "Container $CNAME_WORKER_REPOS already exist."
+	else
+		# ToDo - remove sql/data-dev-jobs.pl
+		docker run -d --link $CNAME_DB:db -u ttus --name $CNAME_WORKER_REPOS \
+		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_CONF \
+		  $TTS_IMAGE /bin/bash -c \
+		  'cd cron ; perl repository-update.pl --project tt-tr1 ; perl repository-update.pl --project tt-tr2 ; \
+		   perl repository-update.pl --project tt-tr3 ; cd .. ; perl utils/db-fill-sqldata.pl sql/data-dev-jobs.pl ; \
+		   cd cron ; ./loop-dev.sh'
+	fi
+fi
+
 # start
 if [ "$CMD" == "start" -a "$SERVER" == 1 ]; then
 	docker start $CNAME_DB
 	docker start $CNAME_WEB
+	docker start $CNAME_WORKER_REPOS
 fi
 if [ "$CMD" == "start" -a "$CLIENT" == 1 ]; then
 	docker start $CNAME_CLIENT
@@ -243,6 +260,7 @@ if [ "$CMD" == "stop" -a "$CLIENT" == 1 ]; then
 	docker stop $CNAME_CLIENT
 fi
 if [ "$CMD" == "stop" -a "$SERVER" == 1 ]; then
+	docker stop $CNAME_WORKER_REPOS
 	docker stop $CNAME_WEB
 	docker stop $CNAME_DB
 fi
@@ -256,6 +274,7 @@ if [ "$CMD" == "rm" -a "$SERVER" == 1 ]; then
 	if [ "$CLIENT" != 1 ]; then
 		docker stop $CNAME_CLIENT
 	fi
+	docker rm -f $CNAME_WORKER_REPOS || :
 	docker rm -f $CNAME_WEB || :
 	docker rm -f $CNAME_WEB_DATA || :
 	docker rm -f $CNAME_WEB_CONF || :
