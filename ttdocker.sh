@@ -144,7 +144,7 @@ if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" ]; then
 	if [ "$CMD" = "wbash" ]; then
 		PORT_MAPPING="2001:2000"
 		echo "To debug web application (mapped to host port 2001) run:"
-		echo "cd /home/ttus/ttdev/tt-server/ ; TAPTINDER_SERVER_CONF_DIR=/opt/taptinder/server/conf script/taptinder_web_server.pl -r -p 2000"
+		echo "cd /home/ttus/ttdev/tt-server/ ; script/taptinder_web_server.pl -r -p 2000"
 		echo ""
 	else
 		echo "To debug setup procedure you can run:"
@@ -161,7 +161,7 @@ if [ "$CMD" == "setup" -a "$SERVER"  ]; then
 	docker run -d -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
 	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 	  $TTS_IMAGE /bin/bash -c \
-	  'utils/ttdocker-setup.sh && TAPTINDER_SERVER_CONF_DIR=/opt/taptinder/server/conf script/taptinder_web_server.pl -r -p 2000'
+	  'utils/ttdocker-setup.sh && script/taptinder_web_server.pl -r -p 2000'
 fi
 
 # Setup: Client.
