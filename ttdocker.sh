@@ -238,7 +238,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 		docker run -d --link $CNAME_DB:db -u ttus --name $CNAME_WORKER_REPOS \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_CONF \
 		  $TTS_IMAGE /bin/bash -c \
-		  'cd cron ; perl repository-update.pl --project tt-tr1 ; perl repository-update.pl --project tt-tr2 ; \
+		  'sleep 100 ; cd cron ; perl repository-update.pl --project tt-tr1 ; perl repository-update.pl --project tt-tr2 ; \
 		   perl repository-update.pl --project tt-tr3 ; cd .. ; perl utils/db-fill-sqldata.pl sql/data-dev-jobs.pl ; \
 		   cd cron ; ./loop-dev.sh'
 	fi
