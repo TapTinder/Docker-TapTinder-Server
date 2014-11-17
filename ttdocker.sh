@@ -113,6 +113,7 @@ CNAME_WEB="${CNAME_PREFIX}-s-web"
 CNAME_WEB_DEBUG="${CNAME_PREFIX}-s-web-debug"
 CNAME_WORKER_REPOS="${CNAME_PREFIX}-s-wrepos"
 CNAME_WORKER_TESTS="${CNAME_PREFIX}-s-wtests"
+CNAME_WORKER_IRC="${CNAME_PREFIX}-s-wirc"
 CNAME_CLIENT="${CNAME_PREFIX}-cl"
 CNAME_CLIENT_DATA="${CNAME_PREFIX}-c-data"
 
@@ -258,12 +259,26 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	fi
 fi
 
+# Run worker to report results on IRC.
+if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
+	if [ $(container_exists $CNAME_WORKER_IRC) = "yes" ]; then
+		echo "Container $CNAME_WORKER_IRC already exist."
+	else
+		# ToDo - remove sql/data-dev-jobs.pl
+		docker run -d --link $CNAME_DB:db -u ttus --name $CNAME_WORKER_IRC \
+		  --volumes-from $CNAME_WEB_CONF \
+		  $TTS_IMAGE /bin/bash -c \
+		  'sleep 100 ; cd cron ; perl ttbot.pl --ibot_id 1 --db_type local'
+	fi
+fi
+
 # start
 if [ "$CMD" == "start" -a "$SERVER" == 1 ]; then
 	docker start $CNAME_DB
 	docker start $CNAME_WEB
 	docker start $CNAME_WORKER_REPOS
 	docker start $CNAME_WORKER_TESTS
+	docker start $CNAME_WORKER_IRC
 fi
 if [ "$CMD" == "start" -a "$CLIENT" == 1 ]; then
 	docker start $CNAME_CLIENT
@@ -275,6 +290,7 @@ if [ "$CMD" == "stop" -a "$CLIENT" == 1 ]; then
 	docker stop $CNAME_CLIENT
 fi
 if [ "$CMD" == "stop" -a "$SERVER" == 1 ]; then
+	docker stop $CNAME_WORKER_IRC
 	docker stop $CNAME_WORKER_TESTS
 	docker stop $CNAME_WORKER_REPOS
 	docker stop $CNAME_WEB
@@ -290,6 +306,7 @@ if [ "$CMD" == "rm" -a "$SERVER" == 1 ]; then
 	if [ "$CLIENT" != 1 ]; then
 		docker stop $CNAME_CLIENT
 	fi
+	docker rm -f $CNAME_WORKER_IRC || :
 	docker rm -f $CNAME_WORKER_TESTS || :
 	docker rm -f $CNAME_WORKER_REPOS || :
 	docker rm -f $CNAME_WEB || :

@@ -5,7 +5,7 @@ RUN yum install -y perl \
      perl-Test-Simple perl-Test-More perl-Test-Harness perl-ExtUtils-MakeMaker \
      perl-ExtUtils-Install perl-Module-Build perl-ExtUtils-MakeMaker perl-Module-Install \
      perl-DBD-MySQL \
-     mariadb graphviz expat expat-devel \
+     mariadb graphviz expat expat-devel libxml2 libxml2-devel \
      make gcc gcc-c++ tree tar gzip git openssl-devel \
   && yum clean all
 
@@ -40,7 +40,7 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
      Catalyst::Plugin::Static::Simple Catalyst::Plugin::Config::Multi Catalyst::View::TT Catalyst::View::JSON \
      Catalyst::Model::DBIC::Schema Catalyst::Plugin::StackTrace Catalyst::Action::RenderView \
      Catalyst::Authentication::Store::DBIx::Class Catalyst::Model::File Catalyst::Controller::REST \
-     Catalyst::Plugin::Authorization::Roles \
+     Catalyst::Plugin::Authorization::Roles autodie Bot::BasicBot::Pluggable \
   && ~/perl5/bin/cpanm --force -v MooseX::Daemonize \
   && ~/perl5/bin/cpanm CPAN \
   && ~/perl5/bin/cpanm Starman SQL::Translator GraphViz Catalyst::Restarter FCGI FCGI::ProcManager \
@@ -50,7 +50,7 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
 RUN git clone https://github.com/mj41/TapTinder.git tt-server
 WORKDIR /home/ttus/tt-server
 RUN echo "Force Docker image rebuild of TapTinder server to particular revision." \
-  && git fetch && git reset --hard be312f9c3f \
+  && git fetch && git reset --hard 0a433dcadc \
   && git log -n1 --oneline HEAD
 
 ENV TAPTINDER_COMPONENT server
