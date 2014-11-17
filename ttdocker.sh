@@ -112,6 +112,7 @@ CNAME_WEB_CONF="${CNAME_PREFIX}-s-web-conf"
 CNAME_WEB="${CNAME_PREFIX}-s-web"
 CNAME_WEB_DEBUG="${CNAME_PREFIX}-s-web-debug"
 CNAME_WORKER_REPOS="${CNAME_PREFIX}-s-wrepos"
+CNAME_WORKER_TESTS="${CNAME_PREFIX}-s-wtests"
 CNAME_CLIENT="${CNAME_PREFIX}-cl"
 CNAME_CLIENT_DATA="${CNAME_PREFIX}-c-data"
 
@@ -244,11 +245,25 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	fi
 fi
 
+# Run worker to get test results to db.
+if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
+	if [ $(container_exists $CNAME_WORKER_TESTS) = "yes" ]; then
+		echo "Container $CNAME_WORKER_TESTS already exist."
+	else
+		# ToDo - remove sql/data-dev-jobs.pl
+		docker run -d --link $CNAME_DB:db -u ttus --name $CNAME_WORKER_TESTS \
+		  --volumes-from $CNAME_WEB_CONF \
+		  $TTS_IMAGE /bin/bash -c \
+		  'sleep 100 ; cd cron ; ./loop-tests-to-db.sh'
+	fi
+fi
+
 # start
 if [ "$CMD" == "start" -a "$SERVER" == 1 ]; then
 	docker start $CNAME_DB
 	docker start $CNAME_WEB
 	docker start $CNAME_WORKER_REPOS
+	docker start $CNAME_WORKER_TESTS
 fi
 if [ "$CMD" == "start" -a "$CLIENT" == 1 ]; then
 	docker start $CNAME_CLIENT
@@ -260,6 +275,7 @@ if [ "$CMD" == "stop" -a "$CLIENT" == 1 ]; then
 	docker stop $CNAME_CLIENT
 fi
 if [ "$CMD" == "stop" -a "$SERVER" == 1 ]; then
+	docker stop $CNAME_WORKER_TESTS
 	docker stop $CNAME_WORKER_REPOS
 	docker stop $CNAME_WEB
 	docker stop $CNAME_DB
@@ -274,6 +290,7 @@ if [ "$CMD" == "rm" -a "$SERVER" == 1 ]; then
 	if [ "$CLIENT" != 1 ]; then
 		docker stop $CNAME_CLIENT
 	fi
+	docker rm -f $CNAME_WORKER_TESTS || :
 	docker rm -f $CNAME_WORKER_REPOS || :
 	docker rm -f $CNAME_WEB || :
 	docker rm -f $CNAME_WEB_DATA || :
