@@ -252,7 +252,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	else
 		# ToDo - remove sql/data-dev-jobs.pl
 		docker run -d --link $CNAME_DB:db -u ttus --name $CNAME_WORKER_TESTS \
-		  --volumes-from $CNAME_WEB_CONF \
+		  --volumes-from $CNAME_WEB_CONF --volumes-from $CNAME_WEB_DATA \
 		  $TTS_IMAGE /bin/bash -c \
 		  'sleep 100 ; cd cron ; ./loop-tests-to-db.sh'
 	fi
