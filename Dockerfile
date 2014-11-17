@@ -1,8 +1,10 @@
 FROM centos:latest
 MAINTAINER Michal Jurosz <docker@mj41.cz>
 
-RUN yum install -y perl perl-Test-Simple perl-Test-More perl-Test-Harness perl-ExtUtils-MakeMaker \
-     perl-ExtUtils-Install perl-Module-Build perl-ExtUtils-MakeMaker perl-Module-Install perl-DBD-MySQL \
+RUN yum install -y perl \
+     perl-Test-Simple perl-Test-More perl-Test-Harness perl-ExtUtils-MakeMaker \
+     perl-ExtUtils-Install perl-Module-Build perl-ExtUtils-MakeMaker perl-Module-Install \
+     perl-DBD-MySQL \
      mariadb graphviz expat expat-devel \
      make gcc gcc-c++ tree tar gzip git openssl-devel \
   && yum clean all
@@ -42,6 +44,7 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
   && ~/perl5/bin/cpanm --force -v MooseX::Daemonize \
   && ~/perl5/bin/cpanm CPAN \
   && ~/perl5/bin/cpanm Starman SQL::Translator GraphViz Catalyst::Restarter FCGI FCGI::ProcManager \
+  && echo "cpanm finished ok" \
   && rm -rf /tmp/cpanm/
 
 RUN git clone https://github.com/mj41/TapTinder.git tt-server
