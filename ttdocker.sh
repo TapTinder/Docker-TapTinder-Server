@@ -299,21 +299,21 @@ fi
 
 # rm
 if [ "$CMD" == "rm" -a "$CLIENT" == 1 ]; then
-	docker rm -f $CNAME_CLIENT || :
-	docker rm -f $CNAME_CLIENT_DATA || :
+	docker rm -v -f $CNAME_CLIENT || :
+	docker rm -v -f $CNAME_CLIENT_DATA || :
 fi
 if [ "$CMD" == "rm" -a "$SERVER" == 1 ]; then
 	if [ "$CLIENT" != 1 ]; then
 		docker stop $CNAME_CLIENT
 	fi
-	docker rm -f $CNAME_WORKER_IRC || :
-	docker rm -f $CNAME_WORKER_TESTS || :
-	docker rm -f $CNAME_WORKER_REPOS || :
-	docker rm -f $CNAME_WEB || :
-	docker rm -f $CNAME_WEB_DATA || :
-	docker rm -f $CNAME_WEB_CONF || :
-	docker rm -f $CNAME_REPOS || :
-	docker rm -f $CNAME_DB || :
-	docker rm -f $CNAME_DB_DATA || :
+	docker rm -v -f $CNAME_WORKER_IRC || :
+	docker rm -v -f $CNAME_WORKER_TESTS || :
+	docker rm -v -f $CNAME_WORKER_REPOS || :
+	docker rm -v -f $CNAME_WEB || :
+	docker rm -v -f $CNAME_WEB_DATA || :
+	docker rm -v -f $CNAME_WEB_CONF || :
+	docker rm -v -f $CNAME_REPOS || :
+	docker rm -v -f $CNAME_DB || :
+	docker rm -v -f $CNAME_DB_DATA || :
 	exit
 fi
