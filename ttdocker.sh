@@ -150,7 +150,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 		echo "Container $CNAME_DB already exist."
 	else
 		# Start 'db'
-		docker run -d --name $CNAME_DB -p 3306:3306 --volumes-from $CNAME_DB_DATA dockerfile/mariadb
+		docker run -d --name $CNAME_DB --volumes-from $CNAME_DB_DATA dockerfile/mariadb
 	fi
 
 	if [ $(container_exists $CNAME_WEB_DATA) = "yes" ]; then
