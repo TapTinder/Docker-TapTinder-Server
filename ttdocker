@@ -3,7 +3,7 @@
 function echo_help {
 cat <<USAGE_END
 Usage:
-  ttdocker.sh ttlocal|ttdev|ttprod|tt... setup|start|stop|rm client|noclient [debug]
+  ./ttdocker ttlocal|ttdev|ttprod|tt... setup|start|stop|rm client|noclient [debug]
 
   Orchestrate your TapTinder containers for
 
@@ -24,8 +24,8 @@ Usage:
   debug ... run in debug mode
 
 Example:
-  ttdocker.sh ttlocal start client debug
-  ttdocker.sh ttprod start noclient
+  ./ttdocker ttlocal start client debug
+  ./ttdocker ttprod start noclient
 
 USAGE_END
 }
