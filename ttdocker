@@ -3,13 +3,14 @@
 function echo_help {
 cat <<USAGE_END
 Usage:
-  ./ttdocker ttlocal|ttdev|ttprod|tt... setup|start|stop|rm client|noclient [debug]
+  ./ttdocker ttlocal|ttdev|ttprod|tt* setup|start|stop|rm client|noclient [debug]
 
   Orchestrate your TapTinder containers for
 
   ttlocal ... local purpose
-  ttdev ... TapTinder development purpose
   ttprod ... production purpose
+  ttdev ... development purpose
+  tt* ... your custom purpose
 
   setup ... setup all containers
   start ... start all containers
