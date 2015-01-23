@@ -2,10 +2,10 @@ FROM fedora:21
 MAINTAINER Michal Jurosz <docker@mj41.cz>
 
 # yum cache
-#RUN sed -i -e 's:keepcache=0:keepcache=1:' /etc/yum.conf
-#VOLUME ["/var/cache/yum/x86_64"]
-#RUN yum update -y
-#RUN ls -al /var/cache/yum/x86_64
+RUN sed -i -e 's:keepcache=0:keepcache=1:' /etc/yum.conf
+VOLUME ["/var/cache/yum/x86_64"]
+RUN yum update -y
+RUN ls -al /var/cache/yum/x86_64
 
 RUN yum install -y perl \
      perl-Test-Simple perl-Test-More perl-Test-Harness perl-ExtUtils-MakeMaker perl-ExtUtils-Embed \
@@ -86,6 +86,8 @@ WORKDIR /home/ttus/tt-server
 RUN echo "Force Docker image rebuild of TapTinder server to particular revision." \
   && git fetch && git reset --hard 0a433dcadc \
   && git log -n1 --oneline HEAD
+
+ADD taptinder_web.uwsgi.ini /home/ttus/ttdev/docker-server/
 
 ENV TAPTINDER_COMPONENT server
 ENV TAPTINDER_REPOS_DIR /opt/taptinder/repos
