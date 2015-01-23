@@ -204,7 +204,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 		docker run -d -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 		  $TTS_IMAGE /bin/bash -c \
-		  'utils/ttdocker-setup.sh no-force base && script/taptinder_web_server.pl -r -p 2000'
+		  'utils/ttdocker-setup.sh no-force base && UWSGI_PLUGIN_DIR=/usr/lib/uwsgi uwsgi --ini /home/ttus/ttdev/docker-server/taptinder_web.uwsgi.ini --http-socket :2000'
 	fi
 fi
 
