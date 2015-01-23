@@ -1,13 +1,44 @@
-FROM centos:latest
+FROM fedora:21
 MAINTAINER Michal Jurosz <docker@mj41.cz>
 
+# yum cache
+#RUN sed -i -e 's:keepcache=0:keepcache=1:' /etc/yum.conf
+#VOLUME ["/var/cache/yum/x86_64"]
+#RUN yum update -y
+#RUN ls -al /var/cache/yum/x86_64
+
 RUN yum install -y perl \
-     perl-Test-Simple perl-Test-More perl-Test-Harness perl-ExtUtils-MakeMaker \
+     perl-Test-Simple perl-Test-More perl-Test-Harness perl-ExtUtils-MakeMaker perl-ExtUtils-Embed \
      perl-ExtUtils-Install perl-Module-Build perl-ExtUtils-MakeMaker perl-Module-Install \
-     perl-DBD-MySQL \
+     perl-DBD-MySQL perl-XML-Twig \
      mariadb graphviz expat expat-devel libxml2 libxml2-devel \
-     make gcc gcc-c++ tree tar gzip git openssl-devel \
-  && yum clean all
+     make gcc gcc-c++ tree tar gzip git openssl-devel unzip \
+     curl-devel jansson-devel
+
+RUN mkdir /tmp/uwsgi-tmp \
+	&& cd /tmp/uwsgi-tmp \
+	&& curl -o uwsgi.zip --get -L -O https://github.com/unbit/uwsgi/archive/795caf954327f68bd3f768889b322e95dc5c1e4d.zip \
+	&& unzip uwsgi.zip \
+	&& mv uwsgi-795caf954327f68bd3f768889b322e95dc5c1e4d uwsgi-src \
+	&& curl -o uwsgi-docker.zip --get -L -O https://github.com/unbit/uwsgi-docker/archive/64a103b3ecbfae5970b8182e3409577624a9309d.zip \
+	&& unzip uwsgi-docker.zip \
+	&& mv uwsgi-docker-64a103b3ecbfae5970b8182e3409577624a9309d uwsgi-docker-src \
+	&& cd /tmp/uwsgi-tmp/uwsgi-src \
+	&& mkdir /usr/lib/uwsgi \
+	&& CPUCOUNT=4 UWSGI_BIN_NAME=/usr/bin/uwsgi python uwsgiconfig.py --build core \
+	&& python uwsgiconfig.py --plugin plugins/corerouter package \
+	&& python uwsgiconfig.py --plugin plugins/fastrouter package \
+	&& python uwsgiconfig.py --plugin plugins/http package \
+	&& python uwsgiconfig.py --plugin plugins/cache package \
+	&& python uwsgiconfig.py --plugin plugins/logfile package \
+	&& python uwsgiconfig.py --plugin plugins/router_metrics package \
+	&& python uwsgiconfig.py --plugin plugins/router_static package \
+	&& python uwsgiconfig.py --plugin plugins/syslog package \
+	&& python uwsgiconfig.py --plugin plugins/psgi package \
+	&& python uwsgiconfig.py --plugin /tmp/uwsgi-tmp/uwsgi-docker-src package uwsgi_docker \
+	&& cd ~/ \
+	&& rm -rf /tmp/uwsgi-tmp/ \
+	&& UWSGI_PLUGIN_DIR=/usr/lib/uwsgi uwsgi --plugins fastrouter,cache,logfile,http,router_metrics,router_static,syslog,psgi --version
 
 RUN useradd --uid 461 -U ttus
 WORKDIR /home/ttus/
@@ -34,20 +65,23 @@ RUN mkdir /tmp/cpanm-ins \
 # ToDo CPAN needed by Catalyst::Devel
 RUN mkdir -p -m 0777 /tmp/cpanm/ \
   && export PERL_CPANM_HOME=/tmp/cpanm/ \
-  && ~/perl5/bin/cpanm YAML YAML::Syck DateTime Term::ReadKey JSON File::Copy::Recursive Archive::Tar Git::Repository \
-     File::ReadBackwards TAP::Harness::Archive LWP::UserAgent Term::Size::Any \
-  && ~/perl5/bin/cpanm Catalyst::Runtime Catalyst::Plugin::Session::State::Cookie Catalyst::Plugin::Session::Store::FastMmap \
+  && ~/perl5/bin/cpanm --force -v Tree::XPathEngine Catalyst::Model::DBIC::Schema \
+  && ~/perl5/bin/cpanm -v autodie YAML YAML::Syck DateTime Term::ReadKey JSON File::Copy::Recursive Archive::Tar \
+     Git::Repository File::ReadBackwards TAP::Harness::Archive LWP::UserAgent Term::Size::Any XML::Feed \
+     IO::CaptureOutput IO::String  XML::Simple HTML::TreeBuilder HTML::Entities::Numbered \
+     Scalar::Util Encode \
+     DBIx::Class Bot::BasicBot::Pluggable \
+     Catalyst::Runtime Catalyst::Plugin::Session::State::Cookie Catalyst::Plugin::Session::Store::FastMmap \
      Catalyst::Plugin::Static::Simple Catalyst::Plugin::Config::Multi Catalyst::View::TT Catalyst::View::JSON \
-     Catalyst::Model::DBIC::Schema Catalyst::Plugin::StackTrace Catalyst::Action::RenderView \
-     Catalyst::Authentication::Store::DBIx::Class Catalyst::Model::File Catalyst::Controller::REST \
-     Catalyst::Plugin::Authorization::Roles autodie Bot::BasicBot::Pluggable \
-  && ~/perl5/bin/cpanm --force -v MooseX::Daemonize \
-  && ~/perl5/bin/cpanm CPAN \
-  && ~/perl5/bin/cpanm Starman SQL::Translator GraphViz Catalyst::Restarter FCGI FCGI::ProcManager \
-  && echo "cpanm finished ok" \
-  && rm -rf /tmp/cpanm/
+     Catalyst::Plugin::StackTrace Catalyst::Action::RenderView \
+     Catalyst::Authentication::Store::DBIx::Class Catalyst::Model::File \
+  && ~/perl5/bin/cpanm --force -v MooseX::Daemonize Catalyst::Controller::REST Catalyst::Plugin::Authorization::Roles \
+  && ~/perl5/bin/cpanm -v CPAN \
+  && ~/perl5/bin/cpanm -v Starman SQL::Translator GraphViz Catalyst::Restarter FCGI FCGI::ProcManager \
+  && rm -rf /tmp/cpanm/ \
+  && echo "cpanm finished ok"
 
-RUN git clone https://github.com/mj41/TapTinder.git tt-server
+RUN git clone https://github.com/TapTinder/TapTinder.git tt-server
 WORKDIR /home/ttus/tt-server
 RUN echo "Force Docker image rebuild of TapTinder server to particular revision." \
   && git fetch && git reset --hard 0a433dcadc \
