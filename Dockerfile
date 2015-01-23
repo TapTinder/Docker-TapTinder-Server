@@ -1,12 +1,6 @@
 FROM fedora:21
 MAINTAINER Michal Jurosz <docker@mj41.cz>
 
-# yum cache
-RUN sed -i -e 's:keepcache=0:keepcache=1:' /etc/yum.conf
-VOLUME ["/var/cache/yum/x86_64"]
-RUN yum update -y
-RUN ls -al /var/cache/yum/x86_64
-
 RUN yum install -y perl \
      perl-Test-Simple perl-Test-More perl-Test-Harness perl-ExtUtils-MakeMaker perl-ExtUtils-Embed \
      perl-ExtUtils-Install perl-Module-Build perl-ExtUtils-MakeMaker perl-Module-Install \
