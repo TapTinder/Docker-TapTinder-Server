@@ -28,6 +28,10 @@ Example:
   ./ttdocker ttlocal start client debug
   ./ttdocker ttprod start noclient
 
+Env variables:
+  TTS_IMAGE='mj41/tt-server:develop' ... server image to use
+  TTCL_IMAGE='mj41/tt-client:develop' ... client image to use
+
 USAGE_END
 }
 
@@ -69,10 +73,10 @@ else
 fi
 
 if [ -z "$TTS_IMAGE" ]; then
-	TTS_IMAGE="mj41/tt-server:latest"
+	TTS_IMAGE="mj41/tt-server:stable"
 fi
 if [ -z "$TTCL_IMAGE" ]; then
-	TTCL_IMAGE="mj41/tt-client:latest"
+	TTCL_IMAGE="mj41/tt-client:stable"
 fi
 
 if [ "$CMD" != "setup" -a "$CMD" != "start" -a "$CMD" != "stop" -a "$CMD" != "rm" -a "$CMD" != "wbash" ]; then
