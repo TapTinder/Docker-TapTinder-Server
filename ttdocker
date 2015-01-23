@@ -122,7 +122,7 @@ CNAME_CLIENT_DATA="${CNAME_PREFIX}-c-data"
 # Setup: Client and/or server parts.
 if [ "$CMD" == "setup" ]; then
 	if [ $(container_exists $CNAME_REPOS) = "yes" ]; then
-		echo "Container $CNAME_REPOS already exist."
+		echo "Container $CNAME_REPOS already exists."
 	else
 		# Prepare 'repos' data container.
 		docker run -i -t --name $CNAME_REPOS -v /opt/taptinder/repos busybox /bin/sh -c \
@@ -134,7 +134,7 @@ fi
 if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 
 	if [ $(container_exists $CNAME_DB_DATA) = "yes" ]; then
-		echo "Container $CNAME_DB_DATA already exist."
+		echo "Container $CNAME_DB_DATA already exists."
 	else
 		# Prepare 'db-data'
 		docker run -i -t --name $CNAME_DB_DATA -v /var/lib/mysql busybox /bin/sh -c 'chmod -R a+rwx /var/lib/mysql'
@@ -148,14 +148,14 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	fi
 
 	if [ $(container_exists $CNAME_DB) = "yes" ]; then
-		echo "Container $CNAME_DB already exist."
+		echo "Container $CNAME_DB already exists."
 	else
 		# Start 'db'
 		docker run -d --name $CNAME_DB --volumes-from $CNAME_DB_DATA dockerfile/mariadb
 	fi
 
 	if [ $(container_exists $CNAME_WEB_DATA) = "yes" ]; then
-		echo "Container $CNAME_WEB_DATA already exist."
+		echo "Container $CNAME_WEB_DATA already exists."
 	else
 		# Prepare server data container.
 		docker run -i -t --name $CNAME_WEB_DATA -v /opt/taptinder/server/data busybox /bin/sh -c \
@@ -163,7 +163,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	fi
 
 	if [ $(container_exists $CNAME_WEB_CONF) = "yes" ]; then
-		echo "Container $CNAME_WEB_CONF already exist."
+		echo "Container $CNAME_WEB_CONF already exists."
 	else
 		# Prepare server configuration container.
 		docker run -i -t --name $CNAME_WEB_CONF -v /opt/taptinder/server/conf busybox /bin/sh -c \
@@ -199,7 +199,7 @@ fi
 # Run ttdocker-setup.sh and start server.
 if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	if [ $(container_exists $CNAME_WEB) = "yes" ]; then
-		echo "Container $CNAME_WEB already exist."
+		echo "Container $CNAME_WEB already exists."
 	else
 		docker run -d -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
@@ -211,7 +211,7 @@ fi
 # Setup: Client.
 if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
 	if [ $(container_exists $CNAME_CLIENT_DATA) = "yes" ]; then
-		echo "Container $CNAME_CLIENT_DATA already exist."
+		echo "Container $CNAME_CLIENT_DATA already exists."
 	else
 		# Prepare 'client' data container.
 		docker run -i -t --name $CNAME_CLIENT_DATA -v /opt/taptinder/client busybox /bin/sh -c \
@@ -224,7 +224,7 @@ if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
 	fi
 
 	if [ $(container_exists $CNAME_CLIENT) = "yes" ]; then
-		echo "Container $CNAME_CLIENT already exist."
+		echo "Container $CNAME_CLIENT already exists."
 	else
 		docker run -d --link $CNAME_WEB:web -u ttucl --name $CNAME_CLIENT \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_CLIENT_DATA \
@@ -235,7 +235,7 @@ fi
 # Run worker to get new commits to db.
 if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	if [ $(container_exists $CNAME_WORKER_REPOS) = "yes" ]; then
-		echo "Container $CNAME_WORKER_REPOS already exist."
+		echo "Container $CNAME_WORKER_REPOS already exists."
 	else
 		# ToDo - remove sql/data-dev-jobs.pl
 		docker run -d --link $CNAME_DB:db -u ttus --name $CNAME_WORKER_REPOS \
@@ -250,7 +250,7 @@ fi
 # Run worker to get test results to db.
 if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	if [ $(container_exists $CNAME_WORKER_TESTS) = "yes" ]; then
-		echo "Container $CNAME_WORKER_TESTS already exist."
+		echo "Container $CNAME_WORKER_TESTS already exists."
 	else
 		# ToDo - remove sql/data-dev-jobs.pl
 		docker run -d --link $CNAME_DB:db -u ttus --name $CNAME_WORKER_TESTS \
@@ -263,7 +263,7 @@ fi
 # Run worker to report results on IRC.
 if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	if [ $(container_exists $CNAME_WORKER_IRC) = "yes" ]; then
-		echo "Container $CNAME_WORKER_IRC already exist."
+		echo "Container $CNAME_WORKER_IRC already exists."
 	else
 		# ToDo - remove sql/data-dev-jobs.pl
 		docker run -d --link $CNAME_DB:db -u ttus --name $CNAME_WORKER_IRC \
