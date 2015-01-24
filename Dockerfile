@@ -67,7 +67,7 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
      DBIx::Class Bot::BasicBot::Pluggable \
      Catalyst::Runtime Catalyst::Plugin::Session::State::Cookie Catalyst::Plugin::Session::Store::FastMmap \
      Catalyst::Plugin::Static::Simple Catalyst::Plugin::Config::Multi Catalyst::View::TT Catalyst::View::JSON \
-     Catalyst::Plugin::StackTrace Catalyst::Action::RenderView \
+     Catalyst::Plugin::StackTrace Catalyst::Action::RenderView Catalyst::Plugin::SmartURI \
      Catalyst::Authentication::Store::DBIx::Class Catalyst::Model::File \
   && ~/perl5/bin/cpanm --force -v MooseX::Daemonize Catalyst::Controller::REST Catalyst::Plugin::Authorization::Roles \
   && ~/perl5/bin/cpanm -v CPAN \
@@ -78,7 +78,7 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
 RUN git clone https://github.com/TapTinder/TapTinder.git tt-server
 WORKDIR /home/ttus/tt-server
 RUN echo "Force Docker image rebuild of TapTinder server to particular revision." \
-  && git fetch && git reset --hard 0a433dcadc \
+  && git fetch && git reset --hard 987890c \
   && git log -n1 --oneline HEAD
 
 ADD taptinder_web.uwsgi.ini /home/ttus/ttdev/docker-server/
