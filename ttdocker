@@ -19,8 +19,8 @@ Usage:
   wbash ... start bash inside temporary web container
 
   client ... start also testing (tt-client container)
-  no-client ... do not start tt-client container
-  client-only ... do not start tt-server container
+  no-client ... skip all tt-client container related actions
+  client-only ... skip all tt-server container related actions
 
   debug ... run in debug mode
 
@@ -72,13 +72,6 @@ else
 	set +e
 fi
 
-if [ -z "$TTS_IMAGE" ]; then
-	TTS_IMAGE="mj41/tt-server:stable"
-fi
-if [ -z "$TTCL_IMAGE" ]; then
-	TTCL_IMAGE="mj41/tt-client:stable"
-fi
-
 if [ "$CMD" != "setup" -a "$CMD" != "start" -a "$CMD" != "stop" -a "$CMD" != "rm" -a "$CMD" != "wbash" ]; then
     echo "Missing/unknown second parameter 'setup', 'start', 'stop', 'rm' or 'wbash'."
     echo
@@ -109,9 +102,15 @@ if [ "$CMD" != "wbash" ]; then
 	fi
 fi
 
+if [ -z "$TTS_IMAGE" ]; then
+	TTS_IMAGE="mj41/tt-server:stable"
+fi
+if [ -z "$TTCL_IMAGE" ]; then
+	TTCL_IMAGE="mj41/tt-client:stable"
+fi
+CNAME_REPOS="${CNAME_PREFIX}-repos"
 CNAME_DB="${CNAME_PREFIX}-s-db"
 CNAME_DB_DATA="${CNAME_PREFIX}-s-db-data"
-CNAME_REPOS="${CNAME_PREFIX}-repos"
 CNAME_WEB_DATA="${CNAME_PREFIX}-s-data"
 CNAME_WEB_CONF="${CNAME_PREFIX}-s-web-conf"
 CNAME_WEB="${CNAME_PREFIX}-s-web"
@@ -306,6 +305,7 @@ fi
 if [ "$CMD" == "rm" -a "$CLIENT" == 1 ]; then
 	docker rm -v -f $CNAME_CLIENT || :
 	docker rm -v -f $CNAME_CLIENT_DATA || :
+	docker rm -v -f $CNAME_REPOS || :
 fi
 if [ "$CMD" == "rm" -a "$SERVER" == 1 ]; then
 	if [ "$CLIENT" != 1 ]; then
@@ -317,7 +317,6 @@ if [ "$CMD" == "rm" -a "$SERVER" == 1 ]; then
 	docker rm -v -f $CNAME_WEB || :
 	docker rm -v -f $CNAME_WEB_DATA || :
 	docker rm -v -f $CNAME_WEB_CONF || :
-	docker rm -v -f $CNAME_REPOS || :
 	docker rm -v -f $CNAME_DB || :
 	docker rm -v -f $CNAME_DB_DATA || :
 	exit
