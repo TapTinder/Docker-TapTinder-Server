@@ -3,7 +3,7 @@
 function echo_help {
 cat <<USAGE_END
 Usage:
-  ./ttdocker ttlocal|ttdev|ttprod|tt* setup|start|stop|rm client|noclient [debug]
+  ./ttdocker ttlocal|ttdev|ttprod|tt* setup|start|stop|rm client|noclient [2010] [debug]
 
   Orchestrate your TapTinder containers for
 
@@ -24,6 +24,8 @@ Usage:
   ex-client-only ... skip all tt-server container related
                      action and work as remote client
 
+  2010 ... set port of web app (default 2010)
+
   debug ... run in debug mode
 
 Example:
@@ -37,6 +39,10 @@ Env variables:
                                                to connect to
 
 USAGE_END
+
+# Debug parameters:
+#   DEBUG_SETUP=yes_ttdev_magic
+
 }
 
 function container_exists {
@@ -53,6 +59,7 @@ function container_exists {
 	fi
 }
 
+
 if [ -z "$1" ]; then
     echo_help
     exit 1
@@ -66,8 +73,8 @@ fi
 CNAME_PREFIX="$1"
 CMD="$2"
 CLIENT_PAR="$3"
-DEBUG="$4"
-DEBUG_SETUP="$5"
+TTS_WEB_PORT="$4"
+DEBUG="$5"
 
 if [ "$DEBUG" = "debug" ]; then
 	set -e
@@ -108,6 +115,13 @@ if [ "$CMD" != "wbash" ]; then
 		echo_help
 		exit 1
 	fi
+fi
+
+if [ -z "$TTS_WEB_PORT" ]; then
+	TTS_WEB_PORT=2010
+elif [ "$TTS_WEB_PORT" -ge 2000 -a "$TTS_WEB_PORT" -le 2009 ]; then
+	echo "Ports from 2000 to 2010 are reserved."
+	exit 1
 fi
 
 if [ -z "$TTS_IMAGE" ]; then
@@ -197,8 +211,10 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	fi
 fi
 
+TTS_WEB_PORT_MAPPING="$TTS_WEB_PORT:2000"
+
 # To debug ttdocker-setup.sh procedure.
-if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" == 1 ]; then
+if [ "$CMD" == "wbash" -o "$DEBUG_SETUP" == "yes_ttdev_magic" ]; then
 	LOCAL_TTDEV_DIR="$HOME/ttdev"
 	if [ ! -d "$LOCAL_TTDEV_DIR/tt-server" ]; then
 		echo "Directory '$LOCAL_TTDEV_DIR/tt-server' not found."
@@ -206,9 +222,9 @@ if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" == 1 ]; then
 	fi
 	chcon -Rt svirt_sandbox_file_t $LOCAL_TTDEV_DIR
 
-	PORT_MAPPING="2000:2000"
-	if [ "$CMD" = "wbash" ]; then
-		PORT_MAPPING="2001:2000"
+	TMP_TTS_WEB_PORT_MAPPING=$TTS_WEB_PORT_MAPPING
+	if [ "$CMD" == "wbash" ]; then
+		TMP_TTS_WEB_PORT_MAPPING=2001:2000
 		echo "To debug web application (mapped to host port 2001) run:"
 		echo "cd /home/ttus/ttdev/tt-server/ ; script/taptinder_web_server.pl -r -p 2000"
 		echo ""
@@ -217,7 +233,7 @@ if [ "$CMD" = "wbash" -o "$DEBUG_SETUP" == 1 ]; then
 		echo "cd /home/ttus/ttdev/tt-server/ ; utils/ttdocker-setup.sh force-setup base"
 		echo ""
 	fi
-	docker run -i -t --rm -p $PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEBUG \
+	docker run -i -t --rm -p $TMP_TTS_WEB_PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEBUG \
 	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 	  -v $LOCAL_TTDEV_DIR:/home/ttus/ttdev:rw $TTS_IMAGE /bin/bash
 fi
@@ -227,7 +243,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	if [ $(container_exists $CNAME_WEB) = "yes" ]; then
 		echo "Container $CNAME_WEB already exists."
 	else
-		docker run -d -p 2000:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
+		docker run -d -p $TTS_WEB_PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 		  $TTS_IMAGE /bin/bash -c \
 		  'utils/ttdocker-setup.sh no-force base && UWSGI_PLUGIN_DIR=/usr/lib/uwsgi uwsgi --ini /home/ttus/ttdev/docker-server/taptinder_web.uwsgi.ini --http-socket :2000'
@@ -320,6 +336,11 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 		  $TTS_IMAGE /bin/bash -c \
 		  'sleep 100 ; cd cron ; perl ttbot.pl --ibot_id 1 --db_type local'
 	fi
+fi
+
+if [ "$CMD" != "rm" -a "$SERVER" == 1 ]; then
+	echo ""
+	echo "Try to run: firefox http://localhost:$TTS_WEB_PORT"
 fi
 
 # start
