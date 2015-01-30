@@ -81,6 +81,8 @@ RUN echo "Force Docker image rebuild of TapTinder server to particular revision.
   && git fetch && git reset --hard 987890c \
   && git log -n1 --oneline HEAD
 
+RUN rm -rf /tmp/* /var/tmp/*
+
 ADD taptinder_web.uwsgi.ini /home/ttus/ttdev/docker-server/
 
 ENV TAPTINDER_COMPONENT server
