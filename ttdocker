@@ -21,6 +21,8 @@ Usage:
   client ... start also testing (tt-client container)
   no-client ... skip all tt-client container related actions
   client-only ... skip all tt-server container related actions
+  ex-client-only ... skip all tt-server container related
+                     action and work as remote client
 
   debug ... run in debug mode
 
@@ -31,6 +33,8 @@ Example:
 Env variables:
   TTS_IMAGE='mj41/tt-server:develop' ... server image to use
   TTCL_IMAGE='mj41/tt-client:develop' ... client image to use
+  TTS_URL='http://perl6.hub.taptinder.org' ... uri of server for external clients
+                                               to connect to
 
 USAGE_END
 }
@@ -80,10 +84,11 @@ if [ "$CMD" != "setup" -a "$CMD" != "start" -a "$CMD" != "stop" -a "$CMD" != "rm
 fi
 
 CLIENT=0
+EX_CLIENT=0
 SERVER=0
 if [ "$CMD" != "wbash" ]; then
-	if [ "$CLIENT_PAR" != "client" -a "$CLIENT_PAR" != "no-client" -a "$CLIENT_PAR" != "client-only" ]; then
-		echo "Missing/unknown third parameter 'client', 'no-client' or 'client-only'."
+	if [ "$CLIENT_PAR" != "client" -a "$CLIENT_PAR" != "no-client" -a "$CLIENT_PAR" != "client-only" -a "$CLIENT_PAR" != "ex-client-only" ]; then
+		echo "Missing/unknown third parameter 'client', 'no-client', 'client-only' or 'ex-client-only'."
 		echo
 		echo_help
 		exit 1
@@ -91,7 +96,10 @@ if [ "$CMD" != "wbash" ]; then
 	if [ "$CLIENT_PAR" != "no-client" ]; then
 		CLIENT=1
 	fi
-	if [ "$CLIENT_PAR" != "client-only" ]; then
+	if [ "$CLIENT_PAR" == "ex-client-only" ]; then
+		EX_CLIENT=1
+	fi
+	if [ "$CLIENT_PAR" != "client-only" -a "$CLIENT_PAR" != "ex-client-only" ]; then
 		SERVER=1
 	fi
 	if [ "$DEBUG_SETUP" -a "$DEBUG_SETUP" != "yes_ttdev_magic" ]; then
@@ -108,6 +116,14 @@ fi
 if [ -z "$TTCL_IMAGE" ]; then
 	TTCL_IMAGE="mj41/tt-client:stable"
 fi
+if [ -z "$TTS_URL" ]; then
+	if [ "$EX_CLIENT" == 1 ]; then
+		TTS_URL="http://web:2000"
+	else
+		TTS_URL="http://sandbox.hub.taptinder.org"
+	fi
+fi
+
 CNAME_REPOS="${CNAME_PREFIX}-repos"
 CNAME_DB="${CNAME_PREFIX}-s-db"
 CNAME_DB_DATA="${CNAME_PREFIX}-s-db-data"
@@ -118,9 +134,16 @@ CNAME_WEB_DEBUG="${CNAME_PREFIX}-s-web-debug"
 CNAME_WORKER_REPOS="${CNAME_PREFIX}-s-wrepos"
 CNAME_WORKER_TESTS="${CNAME_PREFIX}-s-wtests"
 CNAME_WORKER_IRC="${CNAME_PREFIX}-s-wirc"
-CNAME_CLIENT="${CNAME_PREFIX}-cl"
-CNAME_CLIENT_DATA="${CNAME_PREFIX}-c-data"
 
+if [ "$EX_CLIENT" == 1 ]; then
+	CNAME_CLIENT="${CNAME_PREFIX}-excl"
+	CNAME_CLIENT_DATA="${CNAME_PREFIX}-excl-data"
+	CNAME_CLIENT_CONF="${CNAME_PREFIX}-excl-conf"
+else
+	CNAME_CLIENT="${CNAME_PREFIX}-cl"
+	CNAME_CLIENT_DATA="${CNAME_PREFIX}-cl-data"
+	CNAME_CLIENT_CONF="${CNAME_PREFIX}-cl-conf"
+fi
 
 # Setup: Client and/or server parts.
 if [ "$CMD" == "setup" ]; then
@@ -221,16 +244,39 @@ if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
 		  'adduser -u 460 -D ttucl ttucl ; chown ttucl:ttucl -R /opt/taptinder/client ; chmod -R u+rwx,go-rwx /opt/taptinder/client'
 	fi
 
-	if [ $(container_exists $CNAME_WEB) = "no" ]; then
-		echo "Container $CNAME_WEB not found. Please create it first."
-		exit 1
+	CMD_PART_LINK_WEB="--link $CNAME_WEB:web"
+	if [ "$EX_CLIENT" == 0 ]; then
+		if [ $(container_exists $CNAME_WEB) = "no" ]; then
+			echo "Container $CNAME_WEB not found. Please create it first."
+			exit 1
+		fi
+	else
+		CMD_PART_LINK_WEB=''
+	fi
+
+	if [ $(container_exists $CNAME_CLIENT_CONF) = "yes" ]; then
+		echo "Container $CNAME_CLIENT_CONF already exists."
+	else
+		# Prepare client configuration container.
+		docker run -i -t --name $CNAME_CLIENT_CONF -v /opt/taptinder/client/conf busybox /bin/sh -c " \
+			mkdir -p /opt/taptinder/client/conf && \
+			echo '---' > /opt/taptinder/client/conf/client-conf.yml && \
+			echo 'reg_token: openTTserver' >> /opt/taptinder/client/conf/client-conf.yml && \
+			echo 'client_token: $CL_TOKEN' >> /opt/taptinder/client/conf/client-conf.yml && \
+			echo 'server_url: $TTS_URL' >> /opt/taptinder/client/conf/client-conf.yml && \
+			adduser -u 460 -D ttucl ttucl && \
+			chown ttucl:ttucl -R /opt/taptinder/client && \
+			chmod -R u+rwx,go-rwx /opt/taptinder/client && \
+			ls -al /opt/taptinder/client/conf/client-conf.yml \
+		"
 	fi
 
 	if [ $(container_exists $CNAME_CLIENT) = "yes" ]; then
 		echo "Container $CNAME_CLIENT already exists."
 	else
-		docker run -d --link $CNAME_WEB:web -u ttucl --name $CNAME_CLIENT \
-		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_CLIENT_DATA \
+		CL_TOKEN=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
+		docker run -d $CMD_PART_LINK_WEB -u ttucl --name $CNAME_CLIENT \
+		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_CLIENT_DATA --volumes-from $CNAME_CLIENT_CONF \
 		  $TTCL_IMAGE
 	fi
 fi
@@ -306,6 +352,7 @@ if [ "$CMD" == "rm" -a "$CLIENT" == 1 ]; then
 	docker rm -v -f $CNAME_CLIENT || :
 	docker rm -v -f $CNAME_CLIENT_DATA || :
 	docker rm -v -f $CNAME_REPOS || :
+	docker rm -v -f $CNAME_CLIENT_CONF || :
 fi
 if [ "$CMD" == "rm" -a "$SERVER" == 1 ]; then
 	if [ "$CLIENT" != 1 ]; then
