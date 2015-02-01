@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+head $HOME/docker_param/*
+
+TTDEV_WHAT=`cat $HOME/docker_param/what`
+TTDEV_BRANCH=`cat $HOME/docker_param/branch.name`
+TTDEV_COMMIT=`cat $HOME/docker_param/commit_sha1`
+TTDEV_ONLINE=`cat $HOME/docker_param/online`
+
+echo "Force Docker dev image rebuild of $TTDEV_WHAT (branch:$TTDEV_BRANCH,commit:$TTDEV_COMMIT)."
+git fetch
+git reset --hard $TTDEV_COMMIT
+git log -n1 --oneline HEAD

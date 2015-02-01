@@ -1,0 +1,107 @@
+#/bin/sh
+
+function echo_help {
+cat <<USAGE_END
+Usage:
+  ./dev/final-test my-branch online|offline debug
+
+USAGE_END
+}
+
+function git_check_push_branch {
+	TMP_ONLINE="$1"
+	CURRENT_BR=`git rev-parse --abbrev-ref HEAD`
+	if [ "$CURRENT_BR" != "$BRANCH" ]; then
+		echo "Current branch inside '"`pwd`"' doesn't equal '$BRANCH'"
+		exit
+	fi
+	if [ "$TMP_ONLINE" == 1 ]; then
+		echo "Doing 'git push' inside "`pwd`
+		git push
+	fi
+}
+
+if [ -z "$1" ]; then
+    echo_help
+    exit 1
+fi
+
+if [ "$1" == '--help' -o "$1" == '-h' ]; then
+    echo_help
+    exit
+fi
+
+BRANCH="$1"
+
+if [ -z "$2" -o "$2" == "online" ]; then
+	ONLINE=1
+elif [ "$2" == "offline" ]; then
+	ONLINE=0
+else
+	echo "Unknown second parameter. Only 'online' or 'offline' supported."
+	exit 1
+fi
+
+DEBUG="$3"
+if [ "$DEBUG" = "debug" ]; then
+	set -e
+	set -x
+else
+	set +e
+fi
+
+TTS_DEV_BRANCH=$BRANCH
+TTCL_DEV_BRANCH=$BRANCH
+
+LOG_DIR=$HOME/ttdev/docker-server/temp
+mkdir -p "$LOG_DIR"
+
+
+cd ~/ttdev/tt-server/
+git_check_push_branch $ONLINE
+TTS_COMMIT=`git rev-parse --short=10 HEAD`
+
+echo "Building mj41/local-tt-server:my image"
+cd ~/ttdev/docker-server/
+docker build --force-rm --rm -t="mj41/local-tt-server:my" . 2>&1 | tee $LOG_DIR/docker-server.build.log
+cat $LOG_DIR/docker-server.build.log | grep -i -P '(err|failed)'
+
+echo "Building mj41/local-dev-tt-server:my image"
+cd ~/ttdev/docker-server/dev/
+
+mkdir -p docker_param
+echo "TapTinder server" > docker_param/what
+echo $TTS_DEV_BRANCH > docker_param/branch.name
+echo $TTS_COMMIT > docker_param/commit_sha1
+echo $ONLINE > docker_param/online
+
+docker build --force-rm --rm -t="mj41/local-dev-tt-server:my" . 2>&1 | tee $LOG_DIR/docker-server-dev.build.log
+cat $LOG_DIR/docker-server-dev.build.log | grep -i -P '(err|failed)'
+
+
+cd ~/ttdev/tt-client/
+git_check_push_branch $ONLINE
+TTCL_COMMIT=`git rev-parse --short=10 HEAD`
+
+echo "Building "mj41/local-tt-client:my image"
+cd ~/ttdev/docker-client/
+docker build --force-rm --rm -t="mj41/local-tt-client:my" . 2>&1 | tee $LOG_DIR/docker-client.build.log
+cat $LOG_DIR/docker-client.build.log | grep -i -P '(err|failed)'
+
+echo "Building "mj41/local-dev-tt-client:my image"
+cd ~/ttdev/docker-client/dev/
+
+mkdir -p docker_param
+echo "TapTinder client" > docker_param/what
+echo $TTCL_DEV_BRANCH > docker_param/branch.name
+echo $TTCL_COMMIT > docker_param/commit_sha1
+echo $ONLINE > docker_param/online
+
+cp ~/ttdev/docker-server/dev/dev_image_update ~/ttdev/docker-client/dev/dev_image_update-copy
+
+docker build --force-rm --rm -t="mj41/local-dev-tt-client:my" . 2>&1 | tee $LOG_DIR/docker-client-dev.build.log
+cat $LOG_DIR/docker-client-dev.build.log | grep -i -P '(err|failed)'
+
+cd /home/mj/ttdev/docker-server/
+./ttdocker ttdevfinal rm client 2040
+TTS_IMAGE='mj41/local-dev-tt-server:my' TTCL_IMAGE='mj41/local-dev-tt-client:my' ./ttdocker ttdevfinal setup client 2040
