@@ -16,7 +16,7 @@ Usage:
   start ... start all containers
   stop ... stop all containers
   rm ... remove all containers (delete all data)
-  wbash ... start bash inside temporary web container
+  dev ... start bash inside temporary web container
 
   client ... start also testing (tt-client container)
   no-client ... skip all tt-client container related actions
@@ -41,7 +41,9 @@ Env variables:
 USAGE_END
 
 # Debug parameters:
-#   DEBUG_SETUP=yes_ttdev_magic
+#   TTS_DEBUG=mount_host_server  ... run '...-s-web-debug' container with mounted $LOCAL_TTDEV_DIR
+#   TTCL_DEBUG=mount_host_client  ... run '...-s-client-debug' container with mounted $LOCAL_TTDEV_DIR
+#	LOCAL_TTDEV_DIR="$HOME/ttdev"
 
 }
 
@@ -83,8 +85,8 @@ else
 	set +e
 fi
 
-if [ "$CMD" != "setup" -a "$CMD" != "start" -a "$CMD" != "stop" -a "$CMD" != "rm" -a "$CMD" != "wbash" ]; then
-    echo "Missing/unknown second parameter 'setup', 'start', 'stop', 'rm' or 'wbash'."
+if [ "$CMD" != "setup" -a "$CMD" != "start" -a "$CMD" != "stop" -a "$CMD" != "rm" -a "$CMD" != "dev" ]; then
+    echo "Missing/unknown second parameter 'setup', 'start', 'stop', 'rm' or 'dev'."
     echo
     echo_help
     exit 1
@@ -93,7 +95,7 @@ fi
 CLIENT=0
 EX_CLIENT=0
 SERVER=0
-if [ "$CMD" != "wbash" ]; then
+if [ "$CMD" != "dev" ]; then
 	if [ "$CLIENT_PAR" != "client" -a "$CLIENT_PAR" != "no-client" -a "$CLIENT_PAR" != "client-only" -a "$CLIENT_PAR" != "ex-client-only" ]; then
 		echo "Missing/unknown third parameter 'client', 'no-client', 'client-only' or 'ex-client-only'."
 		echo
@@ -109,8 +111,8 @@ if [ "$CMD" != "wbash" ]; then
 	if [ "$CLIENT_PAR" != "client-only" -a "$CLIENT_PAR" != "ex-client-only" ]; then
 		SERVER=1
 	fi
-	if [ "$DEBUG_SETUP" -a "$DEBUG_SETUP" != "yes_ttdev_magic" ]; then
-		echo "Unknown option '$DEBUG_SETUP'."
+	if [ "$TTS_DEBUG" -a "$TTS_DEBUG" != "mount_host_server" -a "$TTS_DEBUG" != "mount_host_client" ]; then
+		echo "Unknown option '$TTS_DEBUG'."
 		echo
 		echo_help
 		exit 1
@@ -137,6 +139,10 @@ if [ -z "$TTS_URL" ]; then
 		TTS_URL="http://sandbox.hub.taptinder.org"
 	fi
 fi
+# Debug parameters:
+if [ -z "$LOCAL_TTDEV_DIR" ]; then
+	LOCAL_TTDEV_DIR="$HOME/ttdev"
+fi
 
 CNAME_REPOS="${CNAME_PREFIX}-repos"
 CNAME_DB="${CNAME_PREFIX}-s-db"
@@ -151,10 +157,12 @@ CNAME_WORKER_IRC="${CNAME_PREFIX}-s-wirc"
 
 if [ "$EX_CLIENT" == 1 ]; then
 	CNAME_CLIENT="${CNAME_PREFIX}-excl"
+	CNAME_CLIENT_DEBUG="${CNAME_PREFIX}-excl-debug"
 	CNAME_CLIENT_DATA="${CNAME_PREFIX}-excl-data"
 	CNAME_CLIENT_CONF="${CNAME_PREFIX}-excl-conf"
 else
 	CNAME_CLIENT="${CNAME_PREFIX}-cl"
+	CNAME_CLIENT_DEBUG="${CNAME_PREFIX}-cl-debug"
 	CNAME_CLIENT_DATA="${CNAME_PREFIX}-cl-data"
 	CNAME_CLIENT_CONF="${CNAME_PREFIX}-cl-conf"
 fi
@@ -213,17 +221,18 @@ fi
 
 TTS_WEB_PORT_MAPPING="$TTS_WEB_PORT:2000"
 
-# To debug ttdocker-setup.sh procedure.
-if [ "$CMD" == "wbash" -o "$DEBUG_SETUP" == "yes_ttdev_magic" ]; then
-	LOCAL_TTDEV_DIR="$HOME/ttdev"
+# To debug server.
+if [ "$CMD" == "dev" ]; then
 	if [ ! -d "$LOCAL_TTDEV_DIR/tt-server" ]; then
 		echo "Directory '$LOCAL_TTDEV_DIR/tt-server' not found."
 		exit 1
 	fi
 	chcon -Rt svirt_sandbox_file_t $LOCAL_TTDEV_DIR
+fi
 
+if [ "$CMD" == "dev" -a "$TTS_DEBUG" == "mount_host_server" -o "$CMD" == "dev" -a "$TTS_DEBUG" == "wbash" ]; then
 	TMP_TTS_WEB_PORT_MAPPING=$TTS_WEB_PORT_MAPPING
-	if [ "$CMD" == "wbash" ]; then
+	if [ "$TTS_DEBUG" == "mount_host_server" ]; then
 		TMP_TTS_WEB_PORT_MAPPING=2001:2000
 		echo "To debug web application (mapped to host port 2001) run:"
 		echo "cd /home/ttus/ttdev/tt-server/ ; script/taptinder_web_server.pl -r -p 2000"
@@ -233,9 +242,13 @@ if [ "$CMD" == "wbash" -o "$DEBUG_SETUP" == "yes_ttdev_magic" ]; then
 		echo "cd /home/ttus/ttdev/tt-server/ ; utils/ttdocker-setup.sh force-setup base"
 		echo ""
 	fi
-	docker run -i -t --rm -p $TMP_TTS_WEB_PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEBUG \
-	  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
-	  -v $LOCAL_TTDEV_DIR:/home/ttus/ttdev:rw $TTS_IMAGE /bin/bash
+	if [ $(container_exists $CNAME_WEB_DEBUG) = "yes" ]; then
+		echo "Container $CNAME_WEB_DEBUG already exists."
+	else
+		docker run -i -t --rm -p $TMP_TTS_WEB_PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEBUG \
+		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
+		  -v $LOCAL_TTDEV_DIR:/home/ttus/ttdev:rw $TTS_IMAGE /bin/bash
+	fi
 fi
 
 # Run ttdocker-setup.sh and start server.
@@ -251,6 +264,16 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 fi
 
 # Setup: Client.
+CMD_PART_LINK_WEB="--link $CNAME_WEB:web"
+if [ "$EX_CLIENT" == 0 ]; then
+	if [ $(container_exists $CNAME_WEB) = "no" ]; then
+		echo "Container $CNAME_WEB not found. Please create it first."
+		exit 1
+	fi
+else
+	CMD_PART_LINK_WEB=''
+fi
+
 if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
 	if [ $(container_exists $CNAME_CLIENT_DATA) = "yes" ]; then
 		echo "Container $CNAME_CLIENT_DATA already exists."
@@ -260,21 +283,12 @@ if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
 		  'adduser -u 460 -D ttucl ttucl ; chown ttucl:ttucl -R /opt/taptinder/client ; chmod -R u+rwx,go-rwx /opt/taptinder/client'
 	fi
 
-	CMD_PART_LINK_WEB="--link $CNAME_WEB:web"
-	if [ "$EX_CLIENT" == 0 ]; then
-		if [ $(container_exists $CNAME_WEB) = "no" ]; then
-			echo "Container $CNAME_WEB not found. Please create it first."
-			exit 1
-		fi
-	else
-		CMD_PART_LINK_WEB=''
-	fi
-
 	if [ $(container_exists $CNAME_CLIENT_CONF) = "yes" ]; then
 		echo "Container $CNAME_CLIENT_CONF already exists."
 	else
+		CL_TOKEN=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 		# Prepare client configuration container.
-		docker run -i -t --name $CNAME_CLIENT_CONF -v /opt/taptinder/client/conf busybox /bin/sh -c " \
+		docker run -d --name $CNAME_CLIENT_CONF -v /opt/taptinder/client/conf busybox /bin/sh -c " \
 			mkdir -p /opt/taptinder/client/conf && \
 			echo '---' > /opt/taptinder/client/conf/client-conf.yml && \
 			echo 'reg_token: openTTserver' >> /opt/taptinder/client/conf/client-conf.yml && \
@@ -290,10 +304,30 @@ if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
 	if [ $(container_exists $CNAME_CLIENT) = "yes" ]; then
 		echo "Container $CNAME_CLIENT already exists."
 	else
-		CL_TOKEN=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 		docker run -d $CMD_PART_LINK_WEB -u ttucl --name $CNAME_CLIENT \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_CLIENT_DATA --volumes-from $CNAME_CLIENT_CONF \
 		  $TTCL_IMAGE
+	fi
+fi
+
+# To debug client.
+if [ "$CMD" == "dev" -a "$TTCL_DEBUG" == "mount_host_client" ]; then
+
+	CMD_PART_LINK_WEB_DEBUG=''
+	if [ $(container_exists $CNAME_WEB_DEBUG) = "yes" ]; then
+		CMD_PART_LINK_WEB="--link $CNAME_WEB_DEBUG:web_dev"
+	fi
+
+	if [ $(container_exists $CNAME_CLIENT_DEBUG) = "yes" ]; then
+		echo "Container $CNAME_CLIENT_DEBUG already exists."
+	else
+		echo "To debug client:"
+		echo "cd /home/ttus/ttdev/tt-client/ ; perl ./ttclient.pl --ver=5"
+		echo ""
+
+		docker run -i -t --rm $CMD_PART_LINK_WEB $CMD_PART_LINK_WEB_DEBUG --link $CNAME_WEB:web -u ttucl --name $CNAME_CLIENT_DEBUG \
+		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_CLIENT_DATA --volumes-from $CNAME_CLIENT_CONF \
+		  -v $LOCAL_TTDEV_DIR:/home/ttucl/ttdev:rw $TTCL_IMAGE /bin/bash
 	fi
 fi
 
