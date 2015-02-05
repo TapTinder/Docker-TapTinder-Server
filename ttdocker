@@ -322,7 +322,7 @@ if [ "$CMD" == "dev" -a "$TTCL_DEBUG" == "mount_host_client" ]; then
 		echo "Container $CNAME_CLIENT_DEBUG already exists."
 	else
 		echo "To debug client:"
-		echo "cd /home/ttus/ttdev/tt-client/ ; perl ./ttclient.pl --ver=5"
+		echo "cd /home/ttucl/ttdev/tt-client/ ; perl ./ttclient.pl --conf_fpath conf/client-conf-ttdf-s-web.yml --ver=5"
 		echo ""
 
 		docker run -i -t --rm $CMD_PART_LINK_WEB $CMD_PART_LINK_WEB_DEBUG --link $CNAME_WEB:web -u ttucl --name $CNAME_CLIENT_DEBUG \
