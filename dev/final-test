@@ -115,6 +115,10 @@ cp ~/ttdev/docker-server/dev/dev_image_update ~/ttdev/docker-client/dev/dev_imag
 docker build --force-rm --rm -t="mj41/local-dev-tt-client:my" . 2>&1 | tee $LOG_DIR/docker-client-dev.build.log
 cat $LOG_DIR/docker-client-dev.build.log | grep -i -P '(err|failed)'
 
+export TTS_IMAGE='mj41/local-dev-tt-server:my'
+export TTCL_IMAGE='mj41/local-dev-tt-client:my'
 cd /home/mj/ttdev/docker-server/
-./ttdocker ttdevfinal rm client 2040
-TTS_IMAGE='mj41/local-dev-tt-server:my' TTCL_IMAGE='mj41/local-dev-tt-client:my' ./ttdocker ttdevfinal setup client 2040
+echo "Removing old 'ttdf' TapTinder containers:"
+./ttdocker ttdf rm client 2040
+echo "Starting new 'ttdf' TapTinder containers:"
+./ttdocker ttdf setup client 2040
