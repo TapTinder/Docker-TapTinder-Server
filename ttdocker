@@ -372,7 +372,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	fi
 fi
 
-if [ "$CMD" != "rm" -a "$SERVER" == 1 ]; then
+if [ "$CMD" != "rm" -a "$CMD" != "stop" -a "$SERVER" == 1 ]; then
 	echo ""
 	echo "Try to run: firefox http://localhost:$TTS_WEB_PORT"
 fi
