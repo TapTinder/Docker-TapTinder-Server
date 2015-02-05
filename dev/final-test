@@ -21,6 +21,19 @@ function git_check_push_branch {
 	fi
 }
 
+function update_file {
+	CONTENT="$1"
+	FPATH="$2"
+
+	CURRENT_CONTENT=`cat $FPATH`
+	if [ "$CURRENT_CONTENT" == "$CONTENT" ]; then
+		echo "Nothing to do. File '$FPATH' is already up-to-date."
+	else
+		echo "Updating '$FPATH' with new content."
+		echo "$CONTENT" > "$FPATH"
+	fi
+}
+
 if [ -z "$1" ]; then
     echo_help
     exit 1
@@ -70,10 +83,10 @@ echo "Building mj41/local-dev-tt-server:my image"
 cd ~/ttdev/docker-server/dev/
 
 mkdir -p docker_param
-echo "TapTinder server" > docker_param/what
-echo $TTS_DEV_BRANCH > docker_param/branch.name
-echo $TTS_COMMIT > docker_param/commit_sha1
-echo $ONLINE > docker_param/online
+update_file "TapTinder server" docker_param/what
+update_file "$TTS_DEV_BRANCH" docker_param/branch.name
+update_file "$TTS_COMMIT" docker_param/commit_sha1
+update_file "$ONLINE" docker_param/online
 
 docker build --force-rm --rm -t="mj41/local-dev-tt-server:my" . 2>&1 | tee $LOG_DIR/docker-server-dev.build.log
 cat $LOG_DIR/docker-server-dev.build.log | grep -i -P '(err|failed)'
@@ -92,10 +105,10 @@ echo "Building "mj41/local-dev-tt-client:my image"
 cd ~/ttdev/docker-client/dev/
 
 mkdir -p docker_param
-echo "TapTinder client" > docker_param/what
-echo $TTCL_DEV_BRANCH > docker_param/branch.name
-echo $TTCL_COMMIT > docker_param/commit_sha1
-echo $ONLINE > docker_param/online
+update_file "TapTinder client" docker_param/what
+update_file "$TTCL_DEV_BRANCH" docker_param/branch.name
+update_file "$TTCL_COMMIT" docker_param/commit_sha1
+update_file "$ONLINE" docker_param/online
 
 cp ~/ttdev/docker-server/dev/dev_image_update ~/ttdev/docker-client/dev/dev_image_update-copy
 
