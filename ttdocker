@@ -134,9 +134,9 @@ if [ -z "$TTCL_IMAGE" ]; then
 fi
 if [ -z "$TTS_URL" ]; then
 	if [ "$EX_CLIENT" == 1 ]; then
-		TTS_URL="http://web:2000"
-	else
 		TTS_URL="http://sandbox.hub.taptinder.org"
+	else
+		TTS_URL="http://web:2000"
 	fi
 fi
 # Debug parameters:
