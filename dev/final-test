@@ -34,6 +34,8 @@ function update_file {
 	fi
 }
 
+set -e
+
 if [ -z "$1" ]; then
     echo_help
     exit 1
@@ -57,10 +59,9 @@ fi
 
 DEBUG="$3"
 if [ "$DEBUG" = "debug" ]; then
-	set -e
 	set -x
 else
-	set +e
+	set +x
 fi
 
 TTS_DEV_BRANCH=$BRANCH
@@ -77,7 +78,7 @@ TTS_COMMIT=`git rev-parse --short=10 HEAD`
 echo "Building mj41/local-tt-server:my image"
 cd ~/ttdev/docker-server/
 docker build --force-rm --rm -t="mj41/local-tt-server:my" . 2>&1 | tee $LOG_DIR/docker-server.build.log
-cat $LOG_DIR/docker-server.build.log | grep -i -P '(err|failed)'
+cat $LOG_DIR/docker-server.build.log | grep -i -P '(err|failed)' || :
 
 echo "Building mj41/local-dev-tt-server:my image"
 cd ~/ttdev/docker-server/dev/
@@ -88,7 +89,7 @@ update_file "$TTS_DEV_BRANCH" docker_param/branch.name
 update_file "$TTS_COMMIT" docker_param/commit_sha1
 
 docker build --force-rm --rm -t="mj41/local-dev-tt-server:my" . 2>&1 | tee $LOG_DIR/docker-server-dev.build.log
-cat $LOG_DIR/docker-server-dev.build.log | grep -i -P '(err|failed)'
+cat $LOG_DIR/docker-server-dev.build.log | grep -i -P '(err|failed)' || :
 
 
 cd ~/ttdev/tt-client/
@@ -98,7 +99,7 @@ TTCL_COMMIT=`git rev-parse --short=10 HEAD`
 echo "Building "mj41/local-tt-client:my image"
 cd ~/ttdev/docker-client/
 docker build --force-rm --rm -t="mj41/local-tt-client:my" . 2>&1 | tee $LOG_DIR/docker-client.build.log
-cat $LOG_DIR/docker-client.build.log | grep -i -P '(err|failed)'
+cat $LOG_DIR/docker-client.build.log | grep -i -P '(err|failed)' || :
 
 echo "Building "mj41/local-dev-tt-client:my image"
 cd ~/ttdev/docker-client/dev/
@@ -111,7 +112,7 @@ update_file "$TTCL_COMMIT" docker_param/commit_sha1
 cp ~/ttdev/docker-server/dev/dev_image_update ~/ttdev/docker-client/dev/dev_image_update-copy
 
 docker build --force-rm --rm -t="mj41/local-dev-tt-client:my" . 2>&1 | tee $LOG_DIR/docker-client-dev.build.log
-cat $LOG_DIR/docker-client-dev.build.log | grep -i -P '(err|failed)'
+cat $LOG_DIR/docker-client-dev.build.log | grep -i -P '(err|failed)' || :
 
 export TTS_IMAGE='mj41/local-dev-tt-server:my'
 export TTCL_IMAGE='mj41/local-dev-tt-client:my'
