@@ -241,7 +241,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	fi
 fi
 
-TTS_WEB_PORT_MAPPING="$TTS_WEB_PORT:2000"
+PAR_HOST_PORT_MAPPING="$PAR_HOST_PORT:2000"
 
 # Check if mounting TTDEV_DIR host directory make sense.
 if [ "$CMD" == "cdev" ]; then
@@ -287,7 +287,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	if [ $(container_exists $CNAME_WEB) == "yes" ]; then
 		echo "Container $CNAME_WEB already exists."
 	else
-		docker run -d -p $TTS_WEB_PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
+		docker run -d -p $PAR_HOST_PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 		  $TTS_IMAGE /bin/bash -c \
 		  'utils/ttdocker-setup.sh no-force base && UWSGI_PLUGIN_DIR=/usr/lib/uwsgi uwsgi --ini /home/ttus/ttdev/docker-server/taptinder_web.uwsgi.ini --http-socket :2000'
@@ -424,7 +424,7 @@ fi
 
 if [ "$CMD" != "rm" -a "$CMD" != "stop" -a "$SERVER" == 1 ]; then
 	echo ""
-	echo "Try to run: firefox http://localhost:$TTS_WEB_PORT"
+	echo "Try to run: firefox http://localhost:$PAR_HOST_PORT"
 fi
 
 # start
