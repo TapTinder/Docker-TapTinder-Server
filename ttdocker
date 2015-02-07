@@ -1,5 +1,15 @@
 #/bin/sh
 
+function echo_help {
+	cat docs/ttdocker-help.txt
+	echo ""
+}
+
+function echo_dev_help {
+	cat docs/ttdocker-dev-help.txt
+	echo ""
+}
+
 function container_exists {
 	CONT_NAME="$1"
 	set +e
@@ -20,12 +30,12 @@ if [ -z "$1" ]; then
 fi
 
 if [ "$1" == '--help' -o "$1" == '-h' ]; then
-	cat docs/ttdocker-help.txt
+	echo_help
     exit
 fi
 
 if [ "$1" == '--dev-help' -o "$1" == '-dh' ]; then
-	cat docs/ttdocker-dev-help.txt
+	echo_dev_help
     exit
 fi
 
@@ -99,7 +109,7 @@ if [ "$CMD_FOR" == "ex-client-only" ]; then
 	if [ -z "$PAR1" ]; then
 		echo "Parameter web-url is mandatory.";
 		echo ""
-		cat docs/ttdocker-help.txt
+		echo_help
 		exit 1
 	fi
 	PAR_WEB_URL="$PAR1"
