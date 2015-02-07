@@ -461,7 +461,9 @@ fi
 # rm
 if [ "$CMD" == "rm" -a "$CLIENT" == 1 ]; then
 	docker rm -v -f $CNAME_CLIENT || :
-	docker rm -v -f $CNAME_CLIENT_DEV || :
+	if [ $(container_exists $CNAME_CLIENT_DEV) == "yes" ]; then
+		docker rm -v -f $CNAME_CLIENT_DEV || :
+	fi
 	docker rm -v -f $CNAME_CLIENT_DATA || :
 	docker rm -v -f $CNAME_REPOS || :
 	docker rm -v -f $CNAME_CLIENT_CONF || :
