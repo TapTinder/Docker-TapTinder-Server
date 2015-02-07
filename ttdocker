@@ -93,6 +93,31 @@ if [ "$CMD_FOR" == "ex-client-only" -o "$CMD_FOR" == "ex-cl-base" ]; then
 	EX_CLIENT=1
 fi
 
+# Params.
+if [ "$CMD_FOR" == "ex-client-only" ]; then
+	# $web-url
+	if [ -z "$PAR1" ]; then
+		echo "Parameter web-url is mandatory.";
+		echo ""
+		cat docs/ttdocker-help.txt
+		exit 1
+	fi
+	PAR_WEB_URL="$PAR1"
+fi
+
+if [ "$CMD_FOR" == "both" -o  "$CMD_FOR" == "server-only" ]; then
+	# $host-port
+	if [ -z "$PAR1" ]; then
+		PAR_HOST_PORT=2020
+	elif [ "$PAR1" -le 2010 -o "$PAR1" -ge 3000 ]; then
+		echo "Please use port within <2011,2999> interval for parameter host-port."
+		exit 1
+	else
+		PAR_HOST_PORT="$PAR1"
+	fi
+fi
+
+
 # Default env variables:
 if [ -z "$TTS_IMAGE" ]; then
 	TTS_IMAGE="mj41/tt-server:stable"
@@ -143,7 +168,7 @@ if [ "$CMD_FOR" == "web" ]; then
 	if [ -z "$PAR1" ]; then
 		PAR_CPORT=2003
 	elif [ "$PAR1" -le 2001 -o "$PAR1" -ge 2010 ]; then
-		echo "Use port within <2002,2009> interval."
+		echo "Please use port within <2002,2009> interval for parameter cport."
 		exit 1
 	else
 		PAR_CPORT="$PAR1"
@@ -153,7 +178,7 @@ if [ "$CMD_FOR" == "web" ]; then
 	if [ -z "$PAR2" ]; then
 		PAR_HOST_PORT=3030
 	elif [ "$PAR2" -le 2999 -o "$PAR2" -ge 4000 ]; then
-		echo "Use port within <3000,3999> interval."
+		echo "Please use port within <3000,3999> interval for parameter host-port."
 		exit 1
 	else
 		PAR_HOST_PORT="$PAR2"
