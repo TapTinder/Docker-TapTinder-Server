@@ -25,8 +25,12 @@ function update_file {
 	CONTENT="$1"
 	FPATH="$2"
 
-	CURRENT_CONTENT=`cat $FPATH`
-	if [ "$CURRENT_CONTENT" == "$CONTENT" ]; then
+	FILE_EXISTS=0
+	if [ -e "$FPATH" ]; then
+		FILE_EXISTS=1
+		CURRENT_CONTENT=`cat $FPATH`
+	fi
+	if [ $"FILE_EXISTS" == 1 -a "$CURRENT_CONTENT" == "$CONTENT" ]; then
 		echo "Nothing to do. File '$FPATH' is already up-to-date."
 	else
 		echo "Updating '$FPATH' with new content."
@@ -84,6 +88,7 @@ echo "Building mj41/local-dev-tt-server:my image"
 cd ~/ttdev/docker-server/dev/
 
 mkdir -p docker_param
+rm -f docker_param/*
 update_file "TapTinder server" docker_param/what
 update_file "$TTS_DEV_BRANCH" docker_param/branch.name
 update_file "$TTS_COMMIT" docker_param/commit_sha1
@@ -105,6 +110,7 @@ echo "Building "mj41/local-dev-tt-client:my image"
 cd ~/ttdev/docker-client/dev/
 
 mkdir -p docker_param
+rm -f docker_param/*
 update_file "TapTinder client" docker_param/what
 update_file "$TTCL_DEV_BRANCH" docker_param/branch.name
 update_file "$TTCL_COMMIT" docker_param/commit_sha1
