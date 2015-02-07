@@ -357,7 +357,6 @@ if [ "$CMD" == "setup" -a "$CLIENT" == 1 -o "$CMD" == "setup" -a "$EX_CLIENT" ==
 		# Prepare client configuration container.
 		docker run -d --name $CNAME_CLIENT_CONF -v /opt/taptinder/client/conf busybox /bin/sh -c " \
 			mkdir -p /opt/taptinder/client/conf && \
-			./utils/gen-config-file.sh /opt/taptinder/client/conf/client-conf.yml $TTS_URL dc_
 			adduser -u 460 -D ttucl ttucl && \
 			chown ttucl:ttucl -R /opt/taptinder/client \
 		"
@@ -368,7 +367,10 @@ if [ "$CMD" == "setup" -a "$CLIENT" == 1 -o "$CMD" == "setup" -a "$EX_CLIENT" ==
 	else
 		docker run -d $CMD_PART_LINK_WEB -u ttucl --name $CNAME_CLIENT \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_CLIENT_DATA --volumes-from $CNAME_CLIENT_CONF \
-		  $TTCL_IMAGE
+		  $TTCL_IMAGE /bin/bash -c " \
+			./utils/gen-config-file.sh /opt/taptinder/client/conf/client-conf.yml $TTS_URL dc_ ;  \
+			/home/ttucl/tt-client/ttclient-start.sh --ver=5 \
+		"
 	fi
 fi
 
