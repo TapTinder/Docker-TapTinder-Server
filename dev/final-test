@@ -62,7 +62,7 @@ else
 fi
 
 DEBUG="$3"
-if [ "$DEBUG" = "debug" ]; then
+if [ "$DEBUG" == "debug" ]; then
 	set -x
 else
 	set +x
@@ -124,6 +124,6 @@ export TTS_IMAGE='mj41/local-dev-tt-server:my'
 export TTCL_IMAGE='mj41/local-dev-tt-client:my'
 cd /home/mj/ttdev/docker-server/
 echo "Removing old 'ttdf' TapTinder containers:"
-./ttdocker ttdf rm both 2040
+./ttdocker ttdf rm both $DEBUG
 echo "Starting new 'ttdf' TapTinder containers:"
-./ttdocker ttdf setup both 2040
+./ttdocker ttdf setup both 2040 $DEBUG
