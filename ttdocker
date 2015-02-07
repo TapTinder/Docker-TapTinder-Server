@@ -24,6 +24,8 @@ function container_exists {
 	fi
 }
 
+set -e
+
 if [ -z "$1" ]; then
     echo_help
     exit 1
@@ -47,7 +49,6 @@ PAR2="$5"
 PAR3="$6"
 
 if [ "$PAR1" == "debug" -o "$PAR2" == "debug" -o "$PAR3" == "debug" ]; then
-	set -e
 	set -x
 	DEBUG=1
 	if [ "$PAR1" == "debug" ]; then
@@ -60,7 +61,7 @@ if [ "$PAR1" == "debug" -o "$PAR2" == "debug" -o "$PAR3" == "debug" ]; then
 		unset PAR3
 	fi
 else
-	set +e
+	set +x
 	DEBUG=0
 fi
 
