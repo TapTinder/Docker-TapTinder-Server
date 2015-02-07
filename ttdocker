@@ -96,7 +96,7 @@ if [ "$CMD_FOR" == "server-only" -o "$CMD_FOR" == "both" ]; then
 	SERVER=1
 fi
 CLIENT=0
-if [ "$CMD_FOR" == "client-only" -o "$CMD_FOR" == "both" ]; then
+if [ "$CMD_FOR" == "client-only" -o "$CMD_FOR" == "cl-base" -o "$CMD_FOR" == "both" ]; then
 	CLIENT=1
 fi
 EX_CLIENT=0
@@ -470,13 +470,13 @@ if [ "$CMD" == "start" -a "$SERVER" == 1 ]; then
 	docker start $CNAME_WORKER_TESTS
 	docker start $CNAME_WORKER_IRC
 fi
-if [ "$CMD" == "start" -a "$CLIENT" == 1 ]; then
+if [ "$CMD" == "start" -a "$CLIENT" == 1 -o "$CMD" == "start" -a "$EX_CLIENT" == 1 ]; then
 	docker start $CNAME_CLIENT
 fi
 
 # stop
 # Stop order: client, web server, db.
-if [ "$CMD" == "stop" -a "$CLIENT" == 1 ]; then
+if [ "$CMD" == "stop" -a "$CLIENT" == 1 -o "$CMD" == "stop" -a "$EX_CLIENT" == 1 ]; then
 	docker stop $CNAME_CLIENT
 	if [ $(container_exists $CNAME_CLIENT_DEV) == "yes" ]; then
 		docker stop $CNAME_CLIENT_DEV
@@ -494,7 +494,7 @@ if [ "$CMD" == "stop" -a "$SERVER" == 1 ]; then
 fi
 
 # rm
-if [ "$CMD" == "rm" -a "$CLIENT" == 1 ]; then
+if [ "$CMD" == "rm" -a "$CLIENT" == 1 -o "$CMD" == "rm" -a "$EX_CLIENT" == 1 ]; then
 	docker rm -v -f $CNAME_CLIENT || :
 	if [ $(container_exists $CNAME_CLIENT_DEV) == "yes" ]; then
 		docker rm -v -f $CNAME_CLIENT_DEV || :
