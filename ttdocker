@@ -135,13 +135,6 @@ fi
 if [ -z "$TTCL_IMAGE" ]; then
 	TTCL_IMAGE="mj41/tt-client:stable"
 fi
-if [ -z "$TTS_URL" ]; then
-	if [ "$EX_CLIENT" == 1 ]; then
-		TTS_URL="http://sandbox.hub.taptinder.org"
-	else
-		TTS_URL="http://web:2000"
-	fi
-fi
 
 # Default devc env variables:
 if [ -z "$HOST_TTDEV_DIR" ]; then
@@ -223,6 +216,14 @@ if [ "$CMD_FOR" == "ex-cl-base" ]; then
 		PAR_WEB_URL='http://sandbox.hub.taptinder.org'
 	fi
 fi
+
+# Server url.
+if [ -z "$PAR_WEB_URL" ]; then
+	TTS_URL="http://web:2000"
+else
+	TTS_URL="$PAR_WEB_URL"
+fi
+
 
 # Setup: Client and/or server parts.
 if [ "$CMD" == "setup" ]; then
@@ -378,10 +379,8 @@ if [ "$CMD_FOR" == "cl-base" -o "$CMD_FOR" == "ex-cl-base" ]; then
 			exit 1
 		fi
 		CMD_PART_LINK_WEB="--link $PAR_WEB_CNAME:web"
-		TMP_TTS_URL="$TTS_URL"
 	else
 		CMD_PART_LINK_WEB=''
-		TMP_TTS_URL="$PAR_WEB_URL"
 	fi
 
 	if [ "$CMD" == "dmount" ]; then
@@ -394,9 +393,9 @@ if [ "$CMD_FOR" == "cl-base" -o "$CMD_FOR" == "ex-cl-base" ]; then
 		echo "Container $CNAME_CLIENT_DEV already exists."
 	else
 		if [ "$CMD" == "dmount" ]; then
-			echo "To debug client (configured to connect to $TMP_TTS_URL):"
+			echo "To debug client (configured to connect to $TTS_URL):"
 			echo "cd /home/ttucl/ttdev/tt-client/"
-			echo "./utils/gen-config-file.sh /tmp/client-conf.yml '$TMP_TTS_URL' ddc_"
+			echo "./utils/gen-config-file.sh /tmp/client-conf.yml '$TTS_URL' ddc_"
 			echo "perl ./ttclient.pl --conf_fpath /tmp/client-conf.yml --ver=5"
 			echo ""
 		else
@@ -404,8 +403,8 @@ if [ "$CMD_FOR" == "cl-base" -o "$CMD_FOR" == "ex-cl-base" ]; then
 			echo "cat /opt/taptinder/client/conf/client-conf.yml"
 			echo "perl ./ttclient.pl --ver=5"
 			echo ""
-			echo "or create new config (to connect to $TMP_TTS_URL) and run client with it:"
-			echo "./utils/gen-config-file.sh /tmp/client-conf.yml '$TMP_TTS_URL' ddc_"
+			echo "or create new config (to connect to $TTS_URL) and run client with it:"
+			echo "./utils/gen-config-file.sh /tmp/client-conf.yml '$TTS_URL' ddc_"
 			echo "perl ./ttclient.pl --conf_fpath /tmp/client-conf.yml --ver=5"
 			echo ""
 		fi
