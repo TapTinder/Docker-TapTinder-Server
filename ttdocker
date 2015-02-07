@@ -73,7 +73,7 @@ if [ "$CMD" != "setup" -a "$CMD" != "start" -a "$CMD" != "stop" -a "$CMD" != "rm
 fi
 
 # ex-client-only|both|server-only|client-only (or web|cl-base|ex-cl-base)
-if [ "$CMD" != "bash" -o "$CMD" != "dmount" ]; then
+if [ "$CMD" != "bash" -a "$CMD" != "dmount" ]; then
 	if [ "$CMD_FOR" != "ex-client-only" -a "$CMD_FOR" != "both" -a "$CMD_FOR" != "server-only" -a "$CMD_FOR" != "client-only" ]; then
 		echo "Missing/unknown third parameter 'ex-client-only', 'both', 'server-only' or 'client-only'."
 		echo
