@@ -504,10 +504,12 @@ if [ "$CMD" == "rm" -a "$CLIENT" == 1 -o "$CMD" == "rm" -a "$EX_CLIENT" == 1 ]; 
 	docker rm -v -f $CNAME_CLIENT_CONF || :
 fi
 if [ "$CMD" == "rm" -a "$SERVER" == 1 ]; then
-	if [ "$CLIENT" != 1 ]; then
-		docker stop $CNAME_CLIENT
+	if [ "$CLIENT" == 1 -o "$EX_CLIENT" == 1 ]; then
+		if [ $(container_exists $CNAME_CLIENT) == "yes" ]; then
+			docker stop $CNAME_CLIENT || :
+		fi
 		if [ $(container_exists $CNAME_CLIENT_DEV) == "yes" ]; then
-			docker stop $CNAME_CLIENT_DEV
+			docker stop $CNAME_CLIENT_DEV || :
 		fi
 	fi
 	docker rm -v -f $CNAME_WORKER_IRC || :
