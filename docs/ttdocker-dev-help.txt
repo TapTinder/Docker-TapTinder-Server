@@ -1,0 +1,35 @@
+Setup, start and remove (on exit) your TapTinder development container.
+
+Usage (development use case):
+
+  ./ttdocker tt* bash|dmount web [$host-port] [debug]
+  ./ttdocker tt* bash|dmount cl-base [$web-cname] [debug]
+  ./ttdocker tt* bash|dmount ex-cl-base [$web-url] [debug]
+
+  bash ... start /bin/bash instead of default command
+  devc ... mount ttdev directory (see HOST_TTDEV_DIR evn variable) from host
+           to container as $HOME/ttdev
+
+  web ... 'tt*-s-web-dev' container linked to tt*-s-web-conf, tt*-s-data, ...
+  $host-port ... expose as this port number to host
+
+  cl-base ... 'tt*-cl-dev' container linked to tt*-cl-conf, tt*-cl-data and
+              web-cname containers
+  $web-cname ... name of web container to connect to (default is tt*-s-web-dev
+                 if exists or tt*-s-web if exists or error)
+
+  ex-cl-base ... 'tt*-cl-dev' container linked to tt*-cl-conf and tt*-cl-data
+  $web-url ... url to connect to (default 'http://sandbox.hub.taptinder.org')
+
+  debug ... run actions in debug mode
+
+Env variables:
+  TTS_IMAGE ... server image to use (default 'mj41/local-tt-server:my')
+  TTCL_IMAGE ... client image to use (defautl 'mj41/local-tt-client:my')
+  HOST_TTDEV_DIR ... path to bese development direcotry (defautl $HOME/ttdev)
+
+Example:
+  ./ttdocker ttmy bash web
+  ./ttdocker ttmy dmount web 3030 2003 debug
+  ./ttdocker ttmy dmount cl-base debug
+  TTCL_IMAGE='mj41/tt-client:develop' ./ttdocker ttsbox dmount ex-cl-base 'http://develop-sandbox.hub.taptinder.org' debug

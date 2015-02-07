@@ -1,0 +1,36 @@
+Orchestrate (setup, start, stop, remove) your TapTinder containers.
+
+Usage:
+
+  ./ttdocker tt* setup|start|stop|rm ex-client-only $web-url [debug]
+  ./ttdocker tt* setup|start|stop|rm both [$host-port] [debug]
+  ./ttdocker tt* setup|start|stop|rm server-only [$host-port] [debug]
+  ./ttdocker tt* setup|start|stop|rm client-only [$web-cname] [debug]
+
+  tt* ... your name for group of containers (e.g. ttprod, ttprojectA, ttclient1)
+
+  setup ... setup (and start) all tt* containers
+  start ... start all tt* containers
+  stop ... stop all tt* containers
+  rm ... remove all tt* containers (and delete all data)
+
+  ex-client-only ... setup/start/stop/rm tt-client containers to work as remote client
+  both ... setup/start/stop/rm both tt-server and tt-client containers
+  server-only ... setup/start/stop/rm tt-server only containers
+  client-only ... setup/start/stop/rm tt-client only containers (needs server containers
+                  to be already running)
+
+  $web-url ...  connect to external url (e.g. 'http://sandbox.hub.taptinder.org')
+  $host-port ... set port of web app (default 2020)
+  $web-cname ... link to this tt-server container
+  debug ... run in debug mode
+
+Env variables:
+  TTS_IMAGE ... server image to use (default 'mj41/tt-server:stable')
+  TTCL_IMAGE ... client image to use (defautl 'mj41/tt-client:stable')
+
+Example:
+  ./ttdocker ttsbox setup ex-client-only 'http://sandbox.hub.taptinder.org' debug
+  ./ttdocker ttmy setup both 2020 debug
+  TTS_IMAGE='mj41/tt-server:develop' TTCL_IMAGE='mj41/tt-client:develop' ./ttdocker ttmy setup both 2060 debug
+  TTCL_IMAGE='mj41/tt-client:develop' ./ttdocker ttsbox setup ex-client-only 'http://develop-sandbox.hub.taptinder.org' debug

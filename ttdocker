@@ -1,52 +1,5 @@
 #/bin/sh
 
-function echo_help {
-cat <<USAGE_END
-Usage:
-  ./ttdocker ttlocal|ttdev|ttprod|tt* setup|start|stop|rm client|noclient [2010] [debug]
-
-  Orchestrate your TapTinder containers for
-
-  ttlocal ... local purpose
-  ttprod ... production purpose
-  ttdev ... development purpose
-  tt* ... your custom purpose
-
-  setup ... setup all containers
-  start ... start all containers
-  stop ... stop all containers
-  rm ... remove all containers (delete all data)
-  dev ... start bash inside temporary web container
-
-  client ... start also testing (tt-client container)
-  no-client ... skip all tt-client container related actions
-  client-only ... skip all tt-server container related actions
-  ex-client-only ... skip all tt-server container related
-                     action and work as remote client
-
-  2010 ... set port of web app (default 2010)
-
-  debug ... run in debug mode
-
-Example:
-  ./ttdocker ttlocal start client debug
-  ./ttdocker ttprod start noclient
-
-Env variables:
-  TTS_IMAGE='mj41/tt-server:develop' ... server image to use
-  TTCL_IMAGE='mj41/tt-client:develop' ... client image to use
-  TTS_URL='http://perl6.hub.taptinder.org' ... uri of server for external clients
-                                               to connect to
-
-USAGE_END
-
-# Debug parameters:
-#   TTS_DEBUG=mount_host_server  ... run '...-s-web-debug' container with mounted $LOCAL_TTDEV_DIR
-#   TTCL_DEBUG=mount_host_client  ... run '...-s-client-debug' container with mounted $LOCAL_TTDEV_DIR
-#	LOCAL_TTDEV_DIR="$HOME/ttdev"
-
-}
-
 function container_exists {
 	CONT_NAME="$1"
 	set +e
@@ -61,71 +14,86 @@ function container_exists {
 	fi
 }
 
-
 if [ -z "$1" ]; then
     echo_help
     exit 1
 fi
 
 if [ "$1" == '--help' -o "$1" == '-h' ]; then
-    echo_help
+	cat docs/ttdocker-help.txt
+    exit
+fi
+
+if [ "$1" == '--dev-help' -o "$1" == '-dh' ]; then
+	cat docs/ttdocker-dev-help.txt
     exit
 fi
 
 CNAME_PREFIX="$1"
 CMD="$2"
-CLIENT_PAR="$3"
-TTS_WEB_PORT="$4"
-DEBUG="$5"
+CMD_FOR="$3"
+PAR1="$4"
+PAR2="$5"
+PAR3="$6"
 
-if [ "$DEBUG" = "debug" ]; then
+if [ "$PAR1" == "debug" -o "$PAR2" == "debug" -o "$PAR3" == "debug" ]; then
 	set -e
 	set -x
+	DEBUG=1
+	if [ "$PAR1" == "debug" ]; then
+		unset PAR1
+	fi
+	if [ "$PAR2" == "debug" ]; then
+		unset PAR2
+	fi
+	if [ "$PAR3" == "debug" ]; then
+		unset PAR3
+	fi
 else
 	set +e
+	DEBUG=0
 fi
 
-if [ "$CMD" != "setup" -a "$CMD" != "start" -a "$CMD" != "stop" -a "$CMD" != "rm" -a "$CMD" != "dev" ]; then
-    echo "Missing/unknown second parameter 'setup', 'start', 'stop', 'rm' or 'dev'."
+# setup|start|stop|rm (|bash|dmount)
+if [ "$CMD" != "setup" -a "$CMD" != "start" -a "$CMD" != "stop" -a "$CMD" != "rm" -a "$CMD" != "bash" -a "$CMD" != "dmount" ]; then
+    echo "Missing/unknown second parameter 'setup', 'start', 'stop' or 'rm' (or 'bash' or 'dmount')."
     echo
     echo_help
     exit 1
 fi
 
-CLIENT=0
-EX_CLIENT=0
+# ex-client-only|both|server-only|client-only (or web|cl-base|ex-cl-base)
+if [ "$CMD" != "bash" -o "$CMD" != "dmount" ]; then
+	if [ "$CMD_FOR" != "ex-client-only" -a "$CMD_FOR" != "both" -a "$CMD_FOR" != "server-only" -a "$CMD_FOR" != "client-only" ]; then
+		echo "Missing/unknown third parameter 'ex-client-only', 'both', 'server-only' or 'client-only'."
+		echo
+		echo_help
+		exit 1
+	fi
+else
+	if [ "$CMD_FOR" != "web" -a "$CMD_FOR" != "cl-base" -a "$CMD_FOR" != "ex-cl-base" ]; then
+		echo "Missing/unknown third parameter 'web', 'cl-base' or 'ex-cl-base'."
+		echo
+		echo_help
+		exit 1
+	fi
+fi
+
+# Shortcuts to simplify conditions later:
 SERVER=0
-if [ "$CMD" != "dev" ]; then
-	if [ "$CLIENT_PAR" != "client" -a "$CLIENT_PAR" != "no-client" -a "$CLIENT_PAR" != "client-only" -a "$CLIENT_PAR" != "ex-client-only" ]; then
-		echo "Missing/unknown third parameter 'client', 'no-client', 'client-only' or 'ex-client-only'."
-		echo
-		echo_help
-		exit 1
-	fi
-	if [ "$CLIENT_PAR" != "no-client" ]; then
-		CLIENT=1
-	fi
-	if [ "$CLIENT_PAR" == "ex-client-only" ]; then
-		EX_CLIENT=1
-	fi
-	if [ "$CLIENT_PAR" != "client-only" -a "$CLIENT_PAR" != "ex-client-only" ]; then
-		SERVER=1
-	fi
-	if [ "$TTS_DEBUG" -a "$TTS_DEBUG" != "mount_host_server" -a "$TTS_DEBUG" != "mount_host_client" ]; then
-		echo "Unknown option '$TTS_DEBUG'."
-		echo
-		echo_help
-		exit 1
-	fi
+if [ "$CMD_FOR" == "server-only" -o "$CMD_FOR" == "both" ]; then
+	SERVER=1
+fi
+CLIENT=0
+if [ "$CMD_FOR" == "client-only" -o "$CMD_FOR" == "both" ]; then
+	CLIENT=1
+fi
+EX_CLIENT=0
+if [ "$CMD_FOR" == "ex-client-only" -o "$CMD_FOR" == "ex-cl-base" ]; then
+	EX_CLIENT=1
 fi
 
-if [ -z "$TTS_WEB_PORT" ]; then
-	TTS_WEB_PORT=2010
-elif [ "$TTS_WEB_PORT" -ge 2000 -a "$TTS_WEB_PORT" -le 2009 ]; then
-	echo "Ports from 2000 to 2010 are reserved."
-	exit 1
-fi
-
+# Default env variables:
 if [ -z "$TTS_IMAGE" ]; then
 	TTS_IMAGE="mj41/tt-server:stable"
 fi
@@ -139,37 +107,91 @@ if [ -z "$TTS_URL" ]; then
 		TTS_URL="http://web:2000"
 	fi
 fi
-# Debug parameters:
-if [ -z "$LOCAL_TTDEV_DIR" ]; then
-	LOCAL_TTDEV_DIR="$HOME/ttdev"
+
+# Default devc env variables:
+if [ -z "$HOST_TTDEV_DIR" ]; then
+	HOST_TTDEV_DIR="$HOME/ttdev"
 fi
 
+# Prepare names of containers:
 CNAME_REPOS="${CNAME_PREFIX}-repos"
 CNAME_DB="${CNAME_PREFIX}-s-db"
 CNAME_DB_DATA="${CNAME_PREFIX}-s-db-data"
 CNAME_WEB_DATA="${CNAME_PREFIX}-s-data"
 CNAME_WEB_CONF="${CNAME_PREFIX}-s-web-conf"
 CNAME_WEB="${CNAME_PREFIX}-s-web"
-CNAME_WEB_DEBUG="${CNAME_PREFIX}-s-web-debug"
+CNAME_WEB_DEV="${CNAME_PREFIX}-s-web-dev"
 CNAME_WORKER_REPOS="${CNAME_PREFIX}-s-wrepos"
 CNAME_WORKER_TESTS="${CNAME_PREFIX}-s-wtests"
 CNAME_WORKER_IRC="${CNAME_PREFIX}-s-wirc"
 
 if [ "$EX_CLIENT" == 1 ]; then
 	CNAME_CLIENT="${CNAME_PREFIX}-excl"
-	CNAME_CLIENT_DEBUG="${CNAME_PREFIX}-excl-debug"
+	CNAME_CLIENT_DEV="${CNAME_PREFIX}-excl-dev"
 	CNAME_CLIENT_DATA="${CNAME_PREFIX}-excl-data"
 	CNAME_CLIENT_CONF="${CNAME_PREFIX}-excl-conf"
 else
 	CNAME_CLIENT="${CNAME_PREFIX}-cl"
-	CNAME_CLIENT_DEBUG="${CNAME_PREFIX}-cl-debug"
+	CNAME_CLIENT_DEV="${CNAME_PREFIX}-cl-dev"
 	CNAME_CLIENT_DATA="${CNAME_PREFIX}-cl-data"
 	CNAME_CLIENT_CONF="${CNAME_PREFIX}-cl-conf"
 fi
 
+# Dev params.
+if [ "$CMD_FOR" == "web" ]; then
+	# $cport
+	if [ -z "$PAR1" ]; then
+		PAR_CPORT=2003
+	elif [ "$PAR1" -le 2001 -o "$PAR1" -ge 2010 ]; then
+		echo "Use port within <2002,2009> interval."
+		exit 1
+	else
+		PAR_CPORT="$PAR1"
+	fi
+
+	# $host-port
+	if [ -z "$PAR2" ]; then
+		PAR_HOST_PORT=3030
+	elif [ "$PAR2" -le 2999 -o "$PAR2" -ge 4000 ]; then
+		echo "Use port within <3000,3999> interval."
+		exit 1
+	else
+		PAR_HOST_PORT="$PAR2"
+	fi
+fi
+
+if [ "$CMD_FOR" == "cl-base" ]; then
+	# $web-cname
+	if [ -z "$PAR1" ]; then
+		if [ $(container_exists $CNAME_WEB_DEV) == "yes" ]; then
+			PAR_WEB_CNAME="$CNAME_WEB_DEV"
+		elif [ $(container_exists $CNAME_WEB) == "yes" ]; then
+			PAR_WEB_CNAME="$CNAME_WEB"
+		else
+			echo "Can't find running '$CNAME_WEB_DEV' or '$CNAME_WEB' container."
+			echo "Please setup your containers properly or use 'ex-cl-base' instead of 'ex-cl'."
+			exit 1
+		fi
+	else
+		PAR_WEB_CNAME="$PAR1"
+		if [ $(container_exists $PAR_WEB_CNAME) == "no" ]; then
+			echo "Can't find running '$PAR_WEB_CNAME' container."
+			echo "Please provide correct web container name."
+			exit 1
+		fi
+	fi
+fi
+
+if [ "$CMD_FOR" == "ex-cl-base" ]; then
+	# $web-url
+	if [ -z "$PAR1" ]; then
+		PAR_WEB_URL='http://sandbox.hub.taptinder.org'
+	fi
+fi
+
 # Setup: Client and/or server parts.
 if [ "$CMD" == "setup" ]; then
-	if [ $(container_exists $CNAME_REPOS) = "yes" ]; then
+	if [ $(container_exists $CNAME_REPOS) == "yes" ]; then
 		echo "Container $CNAME_REPOS already exists."
 	else
 		# Prepare 'repos' data container.
@@ -181,7 +203,7 @@ fi
 # Setup: Server.
 if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 
-	if [ $(container_exists $CNAME_DB_DATA) = "yes" ]; then
+	if [ $(container_exists $CNAME_DB_DATA) == "yes" ]; then
 		echo "Container $CNAME_DB_DATA already exists."
 	else
 		# Prepare 'db-data'
@@ -195,14 +217,14 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 		"
 	fi
 
-	if [ $(container_exists $CNAME_DB) = "yes" ]; then
+	if [ $(container_exists $CNAME_DB) == "yes" ]; then
 		echo "Container $CNAME_DB already exists."
 	else
 		# Start 'db'
 		docker run -d --name $CNAME_DB --volumes-from $CNAME_DB_DATA dockerfile/mariadb
 	fi
 
-	if [ $(container_exists $CNAME_WEB_DATA) = "yes" ]; then
+	if [ $(container_exists $CNAME_WEB_DATA) == "yes" ]; then
 		echo "Container $CNAME_WEB_DATA already exists."
 	else
 		# Prepare server data container.
@@ -210,7 +232,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 		  'adduser -u 461 -D ttus ttus ; chown ttus:ttus -R /opt/taptinder/server ; chmod -R u+rwx,go-rwx /opt/taptinder/server'
 	fi
 
-	if [ $(container_exists $CNAME_WEB_CONF) = "yes" ]; then
+	if [ $(container_exists $CNAME_WEB_CONF) == "yes" ]; then
 		echo "Container $CNAME_WEB_CONF already exists."
 	else
 		# Prepare server configuration container.
@@ -221,39 +243,48 @@ fi
 
 TTS_WEB_PORT_MAPPING="$TTS_WEB_PORT:2000"
 
-# To debug server.
-if [ "$CMD" == "dev" ]; then
-	if [ ! -d "$LOCAL_TTDEV_DIR/tt-server" ]; then
-		echo "Directory '$LOCAL_TTDEV_DIR/tt-server' not found."
+# Check if mounting TTDEV_DIR host directory make sense.
+if [ "$CMD" == "cdev" ]; then
+	if [ ! -d "$HOST_TTDEV_DIR/tt-server" ]; then
+		echo "Directory '$HOST_TTDEV_DIR/tt-server' not found."
 		exit 1
 	fi
-	chcon -Rt svirt_sandbox_file_t $LOCAL_TTDEV_DIR
+	if [ ! -d "$HOST_TTDEV_DIR/tt-client" ]; then
+		echo "Directory '$HOST_TTDEV_DIR/tt-client' not found."
+		exit 1
+	fi
+	chcon -Rt svirt_sandbox_file_t $HOST_TTDEV_DIR
 fi
 
-if [ "$CMD" == "dev" -a "$TTS_DEBUG" == "mount_host_server" -o "$CMD" == "dev" -a "$TTS_DEBUG" == "wbash" ]; then
-	TMP_TTS_WEB_PORT_MAPPING=$TTS_WEB_PORT_MAPPING
-	if [ "$TTS_DEBUG" == "mount_host_server" ]; then
-		TMP_TTS_WEB_PORT_MAPPING=2001:2000
-		echo "To debug web application (mapped to host port 2001) run:"
-		echo "cd /home/ttus/ttdev/tt-server/ ; script/taptinder_web_server.pl -r -p 2000"
+# To debug server web container.
+if [ "$CMD" == "dmount" -a "$CMD_FOR" == "web" -o "$CMD" == "bash" -a "$CMD_FOR" == "web" ]; then
+	if [ "$CMD" == "dmount" ]; then
+		TMP_MOUNT_CMD="-v $HOST_TTDEV_DIR:/home/ttus/ttdev:rw"
+		echo "To start web application on port $CPORT (mapped to host port $PAR_HOST_PORT) run:"
+		echo "cd /home/ttus/ttdev/tt-server/ ; script/taptinder_web_server.pl -r -p $CPORT"
+		echo ""
+		echo "On host run:"
+		echo "firefox http://localhost:$PAR_HOST_PORT"
 		echo ""
 	else
+		TMP_MOUNT_CMD=""
 		echo "To debug setup procedure you can run:"
 		echo "cd /home/ttus/ttdev/tt-server/ ; utils/ttdocker-setup.sh force-setup base"
 		echo ""
 	fi
-	if [ $(container_exists $CNAME_WEB_DEBUG) = "yes" ]; then
-		echo "Container $CNAME_WEB_DEBUG already exists."
+
+	if [ $(container_exists $CNAME_WEB_DEV) == "yes" ]; then
+		echo "Container $CNAME_WEB_DEV already exists."
 	else
-		docker run -i -t --rm -p $TMP_TTS_WEB_PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEBUG \
+		docker run -i -t --rm -p $PAR_HOST_PORT:$PAR_CPORT --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEV \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
-		  -v $LOCAL_TTDEV_DIR:/home/ttus/ttdev:rw $TTS_IMAGE /bin/bash
+		  $TMP_MOUNT_CMD $TTS_IMAGE /bin/bash
 	fi
 fi
 
 # Run ttdocker-setup.sh and start server.
 if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
-	if [ $(container_exists $CNAME_WEB) = "yes" ]; then
+	if [ $(container_exists $CNAME_WEB) == "yes" ]; then
 		echo "Container $CNAME_WEB already exists."
 	else
 		docker run -d -p $TTS_WEB_PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
@@ -264,18 +295,18 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 fi
 
 # Setup: Client.
-CMD_PART_LINK_WEB="--link $CNAME_WEB:web"
-if [ "$EX_CLIENT" == 0 ]; then
-	if [ $(container_exists $CNAME_WEB) = "no" ]; then
-		echo "Container $CNAME_WEB not found. Please create it first."
-		exit 1
+if [ "$CMD" == "setup" -a "$CLIENT" == 1 -o "$CMD" == "setup" -a "$EX_CLIENT" == 1 ]; then
+	if [ "$CLIENT" == 1 ]; then
+		if [ $(container_exists $CNAME_WEB) == "no" ]; then
+			echo "Container $CNAME_WEB not found. Please create it first."
+			exit 1
+		fi
+		CMD_PART_LINK_WEB="--link $CNAME_WEB:web"
+	else
+		CMD_PART_LINK_WEB=''
 	fi
-else
-	CMD_PART_LINK_WEB=''
-fi
 
-if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
-	if [ $(container_exists $CNAME_CLIENT_DATA) = "yes" ]; then
+	if [ $(container_exists $CNAME_CLIENT_DATA) == "yes" ]; then
 		echo "Container $CNAME_CLIENT_DATA already exists."
 	else
 		# Prepare 'client' data container.
@@ -283,25 +314,19 @@ if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
 		  'adduser -u 460 -D ttucl ttucl ; chown ttucl:ttucl -R /opt/taptinder/client ; chmod -R u+rwx,go-rwx /opt/taptinder/client'
 	fi
 
-	if [ $(container_exists $CNAME_CLIENT_CONF) = "yes" ]; then
+	if [ $(container_exists $CNAME_CLIENT_CONF) == "yes" ]; then
 		echo "Container $CNAME_CLIENT_CONF already exists."
 	else
-		CL_TOKEN=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 		# Prepare client configuration container.
 		docker run -d --name $CNAME_CLIENT_CONF -v /opt/taptinder/client/conf busybox /bin/sh -c " \
 			mkdir -p /opt/taptinder/client/conf && \
-			echo '---' > /opt/taptinder/client/conf/client-conf.yml && \
-			echo 'reg_token: openTTserver' >> /opt/taptinder/client/conf/client-conf.yml && \
-			echo 'client_token: $CL_TOKEN' >> /opt/taptinder/client/conf/client-conf.yml && \
-			echo 'server_url: $TTS_URL' >> /opt/taptinder/client/conf/client-conf.yml && \
+			./utils/gen-config-file.sh /opt/taptinder/client/conf/client-conf.yml $TTS_URL dc_
 			adduser -u 460 -D ttucl ttucl && \
-			chown ttucl:ttucl -R /opt/taptinder/client && \
-			chmod -R u+rwx,go-rwx /opt/taptinder/client && \
-			ls -al /opt/taptinder/client/conf/client-conf.yml \
+			chown ttucl:ttucl -R /opt/taptinder/client \
 		"
 	fi
 
-	if [ $(container_exists $CNAME_CLIENT) = "yes" ]; then
+	if [ $(container_exists $CNAME_CLIENT) == "yes" ]; then
 		echo "Container $CNAME_CLIENT already exists."
 	else
 		docker run -d $CMD_PART_LINK_WEB -u ttucl --name $CNAME_CLIENT \
@@ -310,30 +335,55 @@ if [ "$CMD" == "setup" -a "$CLIENT" == 1 ]; then
 	fi
 fi
 
-# To debug client.
-if [ "$CMD" == "dev" -a "$TTCL_DEBUG" == "mount_host_client" ]; then
-
-	CMD_PART_LINK_WEB_DEBUG=''
-	if [ $(container_exists $CNAME_WEB_DEBUG) = "yes" ]; then
-		CMD_PART_LINK_WEB="--link $CNAME_WEB_DEBUG:web_dev"
+# To debug client - bash|dmount cl-base|ex-cl-base
+if [ "$CMD_FOR" == "cl-base" -o "$CMD_FOR" == "ex-cl-base" ]; then
+	if [ "$CMD_FOR" == "cl-base" ]; then
+		if [ $(container_exists $PAR_WEB_CNAME) == "no" ]; then
+			echo "Container $PAR_WEB_CNAME not found. Please create it first."
+			exit 1
+		fi
+		CMD_PART_LINK_WEB="--link $PAR_WEB_CNAME:web"
+		TMP_TTS_URL="$TTS_URL"
+	else
+		CMD_PART_LINK_WEB=''
+		TMP_TTS_URL="$PAR_WEB_URL"
 	fi
 
-	if [ $(container_exists $CNAME_CLIENT_DEBUG) = "yes" ]; then
-		echo "Container $CNAME_CLIENT_DEBUG already exists."
+	if [ "$CMD" == "dmount" ]; then
+		TMP_MOUNT_CMD="-v $HOST_TTDEV_DIR:/home/ttucl/ttdev:rw"
 	else
-		echo "To debug client:"
-		echo "cd /home/ttucl/ttdev/tt-client/ ; perl ./ttclient.pl --conf_fpath conf/client-conf-ttdf-s-web.yml --ver=5"
-		echo ""
+		TMP_MOUNT_CMD=""
+	fi
 
-		docker run -i -t --rm $CMD_PART_LINK_WEB $CMD_PART_LINK_WEB_DEBUG --link $CNAME_WEB:web -u ttucl --name $CNAME_CLIENT_DEBUG \
+	if [ $(container_exists $CNAME_CLIENT_DEV) == "yes" ]; then
+		echo "Container $CNAME_CLIENT_DEV already exists."
+	else
+		if [ "$CMD" == "dmount" ]; then
+			echo "To debug client (configured to connect to $TMP_TTS_URL):"
+			echo "cd /home/ttucl/ttdev/tt-client/"
+			echo "./utils/gen-config-file.sh /tmp/client-conf.yml '$TMP_TTS_URL' ddc_"
+			echo "perl ./ttclient.pl --conf_fpath /tmp/client-conf.yml --ver=5"
+			echo ""
+		else
+			echo "See configuration file and run client:"
+			echo "cat /opt/taptinder/client/conf/client-conf.yml"
+			echo "perl ./ttclient.pl --ver=5"
+			echo ""
+			echo "or create new config (to connect to $TMP_TTS_URL) and run client with it:"
+			echo "./utils/gen-config-file.sh /tmp/client-conf.yml '$TMP_TTS_URL' ddc_"
+			echo "perl ./ttclient.pl --conf_fpath /tmp/client-conf.yml --ver=5"
+			echo ""
+		fi
+
+		docker run -i -t --rm $CMD_PART_LINK_WEB -u ttucl --name $CNAME_CLIENT_DEV \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_CLIENT_DATA --volumes-from $CNAME_CLIENT_CONF \
-		  -v $LOCAL_TTDEV_DIR:/home/ttucl/ttdev:rw $TTCL_IMAGE /bin/bash
+		  $TMP_MOUNT_CMD $TTCL_IMAGE /bin/bash
 	fi
 fi
 
 # Run worker to get new commits to db.
 if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
-	if [ $(container_exists $CNAME_WORKER_REPOS) = "yes" ]; then
+	if [ $(container_exists $CNAME_WORKER_REPOS) == "yes" ]; then
 		echo "Container $CNAME_WORKER_REPOS already exists."
 	else
 		# ToDo - remove sql/data-dev-jobs.pl
@@ -348,7 +398,7 @@ fi
 
 # Run worker to get test results to db.
 if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
-	if [ $(container_exists $CNAME_WORKER_TESTS) = "yes" ]; then
+	if [ $(container_exists $CNAME_WORKER_TESTS) == "yes" ]; then
 		echo "Container $CNAME_WORKER_TESTS already exists."
 	else
 		# ToDo - remove sql/data-dev-jobs.pl
@@ -361,7 +411,7 @@ fi
 
 # Run worker to report results on IRC.
 if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
-	if [ $(container_exists $CNAME_WORKER_IRC) = "yes" ]; then
+	if [ $(container_exists $CNAME_WORKER_IRC) == "yes" ]; then
 		echo "Container $CNAME_WORKER_IRC already exists."
 	else
 		# ToDo - remove sql/data-dev-jobs.pl
@@ -393,18 +443,25 @@ fi
 # Stop order: client, web server, db.
 if [ "$CMD" == "stop" -a "$CLIENT" == 1 ]; then
 	docker stop $CNAME_CLIENT
+	if [ $(container_exists $CNAME_CLIENT_DEV) == "yes" ]; then
+		docker stop $CNAME_CLIENT_DEV
+	fi
 fi
 if [ "$CMD" == "stop" -a "$SERVER" == 1 ]; then
 	docker stop $CNAME_WORKER_IRC
 	docker stop $CNAME_WORKER_TESTS
 	docker stop $CNAME_WORKER_REPOS
 	docker stop $CNAME_WEB
+	if [ $(container_exists $CNAME_WEB_DEV) == "yes" ]; then
+		docker stop $CNAME_WEB_DEV
+	fi
 	docker stop $CNAME_DB
 fi
 
 # rm
 if [ "$CMD" == "rm" -a "$CLIENT" == 1 ]; then
 	docker rm -v -f $CNAME_CLIENT || :
+	docker rm -v -f $CNAME_CLIENT_DEV || :
 	docker rm -v -f $CNAME_CLIENT_DATA || :
 	docker rm -v -f $CNAME_REPOS || :
 	docker rm -v -f $CNAME_CLIENT_CONF || :
@@ -412,11 +469,17 @@ fi
 if [ "$CMD" == "rm" -a "$SERVER" == 1 ]; then
 	if [ "$CLIENT" != 1 ]; then
 		docker stop $CNAME_CLIENT
+		if [ $(container_exists $CNAME_CLIENT_DEV) == "yes" ]; then
+			docker stop $CNAME_CLIENT_DEV
+		fi
 	fi
 	docker rm -v -f $CNAME_WORKER_IRC || :
 	docker rm -v -f $CNAME_WORKER_TESTS || :
 	docker rm -v -f $CNAME_WORKER_REPOS || :
 	docker rm -v -f $CNAME_WEB || :
+	if [ $(container_exists $CNAME_WEB_DEV) == "yes" ]; then
+		docker rm -v -f $CNAME_WEB_DEV || :
+	fi
 	docker rm -v -f $CNAME_WEB_DATA || :
 	docker rm -v -f $CNAME_WEB_CONF || :
 	docker rm -v -f $CNAME_DB || :
