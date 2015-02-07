@@ -86,7 +86,6 @@ mkdir -p docker_param
 update_file "TapTinder server" docker_param/what
 update_file "$TTS_DEV_BRANCH" docker_param/branch.name
 update_file "$TTS_COMMIT" docker_param/commit_sha1
-update_file "$ONLINE" docker_param/online
 
 docker build --force-rm --rm -t="mj41/local-dev-tt-server:my" . 2>&1 | tee $LOG_DIR/docker-server-dev.build.log
 cat $LOG_DIR/docker-server-dev.build.log | grep -i -P '(err|failed)'
@@ -108,7 +107,6 @@ mkdir -p docker_param
 update_file "TapTinder client" docker_param/what
 update_file "$TTCL_DEV_BRANCH" docker_param/branch.name
 update_file "$TTCL_COMMIT" docker_param/commit_sha1
-update_file "$ONLINE" docker_param/online
 
 cp ~/ttdev/docker-server/dev/dev_image_update ~/ttdev/docker-client/dev/dev_image_update-copy
 
