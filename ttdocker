@@ -166,6 +166,11 @@ else
 	CNAME_CLIENT_CONF="${CNAME_PREFIX}-cl-conf"
 fi
 
+if [ ! -z "$CNAME_DEV_SUFFIX" ]; then
+	CNAME_WEB_DEV="${CNAME_WEB_DEV}${CNAME_DEV_SUFFIX}"
+	CNAME_CLIENT_DEV="${CNAME_CLIENT_DEV}${CNAME_DEV_SUFFIX}"
+fi
+
 # Dev params.
 if [ "$CMD_FOR" == "web" ]; then
 	# $cport
@@ -304,6 +309,7 @@ if [ "$CMD" == "dmount" -a "$CMD_FOR" == "web" -o "$CMD" == "bash" -a "$CMD_FOR"
 	if [ $(container_exists $CNAME_WEB_DEV) == "yes" ]; then
 		echo "Container $CNAME_WEB_DEV already exists."
 	else
+		echo "Starting web dev container: $CNAME_WEB_DEV"
 		docker run -i -t --rm -p $PAR_HOST_PORT:$PAR_CPORT --link $CNAME_DB:db -u ttus --name $CNAME_WEB_DEV \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 		  $TMP_MOUNT_CMD $TTS_IMAGE /bin/bash
@@ -403,6 +409,7 @@ if [ "$CMD_FOR" == "cl-base" -o "$CMD_FOR" == "ex-cl-base" ]; then
 			echo ""
 		fi
 
+		echo "Starting web dev container: $CNAME_CLIENT_DEV"
 		docker run -i -t --rm $CMD_PART_LINK_WEB -u ttucl --name $CNAME_CLIENT_DEV \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_CLIENT_DATA --volumes-from $CNAME_CLIENT_CONF \
 		  $TMP_MOUNT_CMD $TTCL_IMAGE /bin/bash

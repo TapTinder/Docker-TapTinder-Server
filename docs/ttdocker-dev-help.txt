@@ -27,6 +27,7 @@ Env variables:
   TTS_IMAGE ... server image to use (default 'mj41/local-tt-server:my')
   TTCL_IMAGE ... client image to use (defautl 'mj41/local-tt-client:my')
   HOST_TTDEV_DIR ... path to bese development direcotry (defautl $HOME/ttdev)
+  CNAME_DEV_SUFFIX ... suffix to name of dev container names (to start more than one)
 
 Example:
   ./ttdocker ttmy bash web
