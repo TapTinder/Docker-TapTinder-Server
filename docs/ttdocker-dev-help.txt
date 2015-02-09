@@ -7,8 +7,8 @@ Usage (development use case):
   ./ttdocker tt* bash|dmount ex-cl-base [$web-url] [debug]
 
   bash ... start /bin/bash instead of default command
-  devc ... mount ttdev directory (see HOST_TTDEV_DIR evn variable) from host
-           to container as $HOME/ttdev
+  dmount ... mount ttdev directory (see HOST_TTDEV_DIR evn variable) from host
+             to container as $HOME/ttdev
 
   web ... 'tt*-s-web-dev' container linked to tt*-s-web-conf, tt*-s-data, ...
   $host-port ... expose as this port number to host

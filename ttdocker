@@ -169,23 +169,16 @@ fi
 # Dev params.
 if [ "$CMD_FOR" == "web" ]; then
 	# $cport
-	if [ -z "$PAR1" ]; then
-		PAR_CPORT=2003
-	elif [ "$PAR1" -le 2001 -o "$PAR1" -ge 2010 ]; then
-		echo "Please use port within <2002,2009> interval for parameter cport."
-		exit 1
-	else
-		PAR_CPORT="$PAR1"
-	fi
+	PAR_CPORT=2003
 
 	# $host-port
-	if [ -z "$PAR2" ]; then
+	if [ -z "$PAR1" ]; then
 		PAR_HOST_PORT=3030
-	elif [ "$PAR2" -le 2999 -o "$PAR2" -ge 4000 ]; then
+	elif [ "$PAR1" -le 2999 -o "$PAR1" -ge 4000 ]; then
 		echo "Please use port within <3000,3999> interval for parameter host-port."
 		exit 1
 	else
-		PAR_HOST_PORT="$PAR2"
+		PAR_HOST_PORT="$PAR1"
 	fi
 fi
 
@@ -278,8 +271,6 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	fi
 fi
 
-PAR_HOST_PORT_MAPPING="$PAR_HOST_PORT:2000"
-
 # Check if mounting TTDEV_DIR host directory make sense.
 if [ "$CMD" == "cdev" ]; then
 	if [ ! -d "$HOST_TTDEV_DIR/tt-server" ]; then
@@ -297,8 +288,8 @@ fi
 if [ "$CMD" == "dmount" -a "$CMD_FOR" == "web" -o "$CMD" == "bash" -a "$CMD_FOR" == "web" ]; then
 	if [ "$CMD" == "dmount" ]; then
 		TMP_MOUNT_CMD="-v $HOST_TTDEV_DIR:/home/ttus/ttdev:rw"
-		echo "To start web application on port $CPORT (mapped to host port $PAR_HOST_PORT) run:"
-		echo "cd /home/ttus/ttdev/tt-server/ ; script/taptinder_web_server.pl -r -p $CPORT"
+		echo "To start web application on port $PAR_CPORT (mapped to host port $PAR_HOST_PORT) run:"
+		echo "cd /home/ttus/ttdev/tt-server/ ; script/taptinder_web_server.pl -r -p $PAR_CPORT"
 		echo ""
 		echo "On host run:"
 		echo "firefox http://localhost:$PAR_HOST_PORT"
@@ -324,7 +315,7 @@ if [ "$CMD" == "setup" -a "$SERVER" == 1 ]; then
 	if [ $(container_exists $CNAME_WEB) == "yes" ]; then
 		echo "Container $CNAME_WEB already exists."
 	else
-		docker run -d -p $PAR_HOST_PORT_MAPPING --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
+		docker run -d -p $PAR_HOST_PORT:2000 --link $CNAME_DB:db -u ttus --name $CNAME_WEB \
 		  --volumes-from $CNAME_REPOS --volumes-from $CNAME_WEB_DATA --volumes-from $CNAME_WEB_CONF \
 		  $TTS_IMAGE /bin/bash -c \
 		  'utils/ttdocker-setup.sh no-force base && UWSGI_PLUGIN_DIR=/usr/lib/uwsgi uwsgi --ini /home/ttus/ttdev/docker-server/taptinder_web.uwsgi.ini --http-socket :2000'
