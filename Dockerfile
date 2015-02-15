@@ -63,7 +63,7 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
   && ~/perl5/bin/cpanm -v autodie YAML YAML::Syck DateTime Term::ReadKey JSON File::Copy::Recursive Archive::Tar \
      Git::Repository File::ReadBackwards TAP::Harness::Archive LWP::UserAgent Term::Size::Any XML::Feed \
      IO::CaptureOutput IO::String  XML::Simple HTML::TreeBuilder HTML::Entities::Numbered \
-     Scalar::Util Encode \
+     JSON::XS Scalar::Util Encode \
      DBIx::Class Bot::BasicBot::Pluggable \
      Catalyst::Runtime Catalyst::Plugin::Session::State::Cookie Catalyst::Plugin::Session::Store::FastMmap \
      Catalyst::Plugin::Static::Simple Catalyst::Plugin::Config::Multi Catalyst::View::TT Catalyst::View::JSON \
