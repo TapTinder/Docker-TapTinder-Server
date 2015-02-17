@@ -192,6 +192,7 @@ if [ "$CMD_FOR" == "cl-base" ]; then
 	if [ -z "$PAR1" ]; then
 		if [ $(container_exists $CNAME_WEB_DEV) == "yes" ]; then
 			PAR_WEB_CNAME="$CNAME_WEB_DEV"
+			PAR_CPORT=2003
 		elif [ $(container_exists $CNAME_WEB) == "yes" ]; then
 			PAR_WEB_CNAME="$CNAME_WEB"
 		else
@@ -216,9 +217,14 @@ if [ "$CMD_FOR" == "ex-cl-base" ]; then
 	fi
 fi
 
+# Server container port.
+if [ -z "$PAR_CPORT" ]; then
+	PAR_CPORT=2000
+fi
+
 # Server url.
 if [ -z "$PAR_WEB_URL" ]; then
-	TTS_URL="http://web:2000"
+	TTS_URL="http://web:$PAR_CPORT"
 else
 	TTS_URL="$PAR_WEB_URL"
 fi
