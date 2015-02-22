@@ -78,7 +78,7 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
 RUN git clone https://github.com/TapTinder/TapTinder.git tt-server
 WORKDIR /home/ttus/tt-server
 RUN echo "Force Docker image rebuild of TapTinder server to particular revision." \
-  && git fetch && git reset --hard a84e4d6 \
+  && git fetch && git reset --hard 856ae9d \
   && git log -n1 --oneline HEAD
 
 ADD taptinder_web.uwsgi.ini /home/ttus/ttdev/docker-server/
