@@ -3,7 +3,7 @@
 function echo_help {
 cat <<USAGE_END
 Usage:
-  ./dev/final-test my-branch online|offline debug
+  ./dev/final-test my-branch online|offline [both|server-only|client-only|ex-client-only] debug
 
 USAGE_END
 }
@@ -61,11 +61,39 @@ else
 	exit 1
 fi
 
-DEBUG="$3"
-if [ "$DEBUG" == "debug" ]; then
+PAR1="$3"
+PAR2="$4"
+
+if [ "$PAR1" == "debug" -o "$PAR2" == "debug" ]; then
 	set -x
+	DEBUG="debug"
+	if [ "$PAR1" == "debug" ]; then
+		unset PAR1
+	fi
+	if [ "$PAR2" == "debug" ]; then
+		unset PAR2
+	fi
 else
 	set +x
+	DEBUG=""
+fi
+
+CMD_FOR="$PAR1"
+if [ -z "$CMD_FOR" ]; then
+	CMD_FOR="both"
+fi
+
+# Shortcuts to simplify conditions later:
+SERVER=0
+if [ "$CMD_FOR" == "server-only" -o "$CMD_FOR" == "both" ]; then
+	SERVER=1
+fi
+SOME_CLIENT=0
+if [ "$CMD_FOR" == "client-only" -o "$CMD_FOR" == "cl-base" -o "$CMD_FOR" == "both" ]; then
+	SOME_CLIENT=1
+fi
+if [ "$CMD_FOR" == "ex-client-only" -o "$CMD_FOR" == "ex-cl-base" ]; then
+	SOME_CLIENT=1
 fi
 
 TTS_DEV_BRANCH=$BRANCH
@@ -74,56 +102,60 @@ TTCL_DEV_BRANCH=$BRANCH
 LOG_DIR=$HOME/ttdev/docker-server/temp
 mkdir -p "$LOG_DIR"
 
+if [ "$SERVER" == 1 ]; then
+	cd ~/ttdev/tt-server/
+	git_check_push_branch $ONLINE
+	TTS_COMMIT=`git rev-parse --short=10 HEAD`
 
-cd ~/ttdev/tt-server/
-git_check_push_branch $ONLINE
-TTS_COMMIT=`git rev-parse --short=10 HEAD`
+	echo "Building mj41/local-tt-server:my image"
+	cd ~/ttdev/docker-server/
+	docker build --force-rm --rm -t="mj41/local-tt-server:my" . 2>&1 | tee $LOG_DIR/docker-server.build.log
+	cat $LOG_DIR/docker-server.build.log | grep -i -P '(err|failed)' || :
 
-echo "Building mj41/local-tt-server:my image"
-cd ~/ttdev/docker-server/
-docker build --force-rm --rm -t="mj41/local-tt-server:my" . 2>&1 | tee $LOG_DIR/docker-server.build.log
-cat $LOG_DIR/docker-server.build.log | grep -i -P '(err|failed)' || :
+	echo "Building mj41/local-dev-tt-server:my image"
+	cd ~/ttdev/docker-server/dev/
 
-echo "Building mj41/local-dev-tt-server:my image"
-cd ~/ttdev/docker-server/dev/
+	mkdir -p docker_param
+	rm -f docker_param/*
+	update_file "TapTinder server" docker_param/what
+	update_file "$TTS_DEV_BRANCH" docker_param/branch.name
+	update_file "$TTS_COMMIT" docker_param/commit_sha1
 
-mkdir -p docker_param
-rm -f docker_param/*
-update_file "TapTinder server" docker_param/what
-update_file "$TTS_DEV_BRANCH" docker_param/branch.name
-update_file "$TTS_COMMIT" docker_param/commit_sha1
+	docker build --force-rm --rm -t="mj41/local-dev-tt-server:my" . 2>&1 | tee $LOG_DIR/docker-server-dev.build.log
+	cat $LOG_DIR/docker-server-dev.build.log | grep -i -P '(err|failed)' || :
+fi
 
-docker build --force-rm --rm -t="mj41/local-dev-tt-server:my" . 2>&1 | tee $LOG_DIR/docker-server-dev.build.log
-cat $LOG_DIR/docker-server-dev.build.log | grep -i -P '(err|failed)' || :
+if [ "$SOME_CLIENT" == 1 ]; then
+	cd ~/ttdev/tt-client/
+	git_check_push_branch $ONLINE
+	TTCL_COMMIT=`git rev-parse --short=10 HEAD`
 
+	echo "Building "mj41/local-tt-client:my image"
+	cd ~/ttdev/docker-client/
+	docker build --force-rm --rm -t="mj41/local-tt-client:my" . 2>&1 | tee $LOG_DIR/docker-client.build.log
+	cat $LOG_DIR/docker-client.build.log | grep -i -P '(err|failed)' || :
 
-cd ~/ttdev/tt-client/
-git_check_push_branch $ONLINE
-TTCL_COMMIT=`git rev-parse --short=10 HEAD`
+	echo "Building "mj41/local-dev-tt-client:my image"
+	cd ~/ttdev/docker-client/dev/
 
-echo "Building "mj41/local-tt-client:my image"
-cd ~/ttdev/docker-client/
-docker build --force-rm --rm -t="mj41/local-tt-client:my" . 2>&1 | tee $LOG_DIR/docker-client.build.log
-cat $LOG_DIR/docker-client.build.log | grep -i -P '(err|failed)' || :
+	mkdir -p docker_param
+	rm -f docker_param/*
+	update_file "TapTinder client" docker_param/what
+	update_file "$TTCL_DEV_BRANCH" docker_param/branch.name
+	update_file "$TTCL_COMMIT" docker_param/commit_sha1
 
-echo "Building "mj41/local-dev-tt-client:my image"
-cd ~/ttdev/docker-client/dev/
+	cp ~/ttdev/docker-server/dev/dev_image_update ~/ttdev/docker-client/dev/dev_image_update-copy
 
-mkdir -p docker_param
-rm -f docker_param/*
-update_file "TapTinder client" docker_param/what
-update_file "$TTCL_DEV_BRANCH" docker_param/branch.name
-update_file "$TTCL_COMMIT" docker_param/commit_sha1
-
-cp ~/ttdev/docker-server/dev/dev_image_update ~/ttdev/docker-client/dev/dev_image_update-copy
-
-docker build --force-rm --rm -t="mj41/local-dev-tt-client:my" . 2>&1 | tee $LOG_DIR/docker-client-dev.build.log
-cat $LOG_DIR/docker-client-dev.build.log | grep -i -P '(err|failed)' || :
+	docker build --force-rm --rm -t="mj41/local-dev-tt-client:my" . 2>&1 | tee $LOG_DIR/docker-client-dev.build.log
+	cat $LOG_DIR/docker-client-dev.build.log | grep -i -P '(err|failed)' || :
+fi
 
 export TTS_IMAGE='mj41/local-dev-tt-server:my'
 export TTCL_IMAGE='mj41/local-dev-tt-client:my'
+
 cd /home/mj/ttdev/docker-server/
 echo "Removing old 'ttdf' TapTinder containers:"
 ./ttdocker ttdf rm both $DEBUG
+
 echo "Starting new 'ttdf' TapTinder containers:"
-./ttdocker ttdf setup both 2040 $DEBUG
+./ttdocker ttdf setup "$CMD_FOR" 2040 $DEBUG
