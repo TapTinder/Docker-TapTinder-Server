@@ -83,7 +83,7 @@ RUN git clone https://github.com/mj41/Git-Repository-LogRaw.git
 
 WORKDIR /home/ttus/tt-server
 RUN echo "Force Docker image rebuild of TapTinder server to particular revision." \
-  && git fetch && git reset --hard 5f211e0 \
+  && git fetch && git reset --hard a8f097d \
   && git log -n1 --oneline HEAD
 
 ADD taptinder_web.uwsgi.ini /home/ttus/ttdev/docker-server/
