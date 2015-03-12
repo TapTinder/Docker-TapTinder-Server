@@ -77,6 +77,11 @@ RUN mkdir -p -m 0777 /tmp/cpanm/ \
 
 RUN git clone https://github.com/TapTinder/TapTinder.git tt-server
 WORKDIR /home/ttus/tt-server
+RUN mkdir -p third-party
+WORKDIR /home/ttus/tt-server/third-party/
+RUN git clone https://github.com/mj41/Git-Repository-LogRaw.git
+
+WORKDIR /home/ttus/tt-server
 RUN echo "Force Docker image rebuild of TapTinder server to particular revision." \
   && git fetch && git reset --hard 5f211e0 \
   && git log -n1 --oneline HEAD
